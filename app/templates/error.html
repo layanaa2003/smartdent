@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<section class="error-page">
+  <span class="code">Error {{ code }}</span>
+  <h1>{{ title }}</h1>
+  <p>{{ text }}</p>
+  <a class="button primary" href="{{ url_for('index') }}">{{ "Go to my dashboard" if current_user.is_authenticated else "Go to the SmartDent website" }}</a>
+</section>
+{% endblock %}

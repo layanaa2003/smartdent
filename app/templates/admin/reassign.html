@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Transfer patients of {{ doctor.name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('admin.doctors') }}">&larr; Doctors</a>
+<div class="page-head">
+  <div>
+    <h1>Transfer patients of {{ doctor.name }}</h1>
+    <p class="lead">{{ doctor.patients|length }} patient{{ "s" if doctor.patients|length != 1 }}. Move them one at a time, or all together.</p>
+  </div>
+</div>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>One patient at a time</h2>
+    <div class="table-wrap" style="box-shadow: none">
+    <table>
+      <tbody>
+      {% for p in doctor.patients|sort(attribute="name") %}
+        <tr>
+          <td><span class="person"><span class="avatar">{{ p.name|initials }}</span><span>{{ p.name }}<small>{{ p.xrays|length }} X-ray{{ "s" if p.xrays|length != 1 }}</small></span></span></td>
+          <td class="actions">
+            <a class="button small" href="{{ url_for('admin.transfer_patient_view', patient_id=p.id, back=doctor.id) }}">Transfer</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>All patients at once</h2>
+    <p class="note">All {{ doctor.patients|length }} patient(s), with their X-rays and reports, will move to the doctor you choose.</p>
+    {% if has_others %}
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {{ field(form.new_doctor) }}
+        <label class="check">{{ form.remove_doctor() }} {{ form.remove_doctor.label.text }}</label>
+        <div class="form-actions">
+          {{ form.submit(class="button primary") }}
+          <a class="button" href="{{ url_for('admin.doctors') }}">Cancel</a>
+        </div>
+      </form>
+    {% else %}
+      <p class="flash error">There is no other doctor to move the patients to. Add another doctor first.</p>
+      <a class="button" href="{{ url_for('admin.doctors') }}">Back</a>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% from "_macros.html" import button_form %}
+{% block title %}X-ray of {{ xray.patient.name }}{% endblock %}
+{% block content %}
+{% set findings = xray.result.findings if xray.result else [] %}
+{% set reviewed = (reviews.agree + reviews.disagree) if reviews else 0 %}
+<a class="back-link" href="{{ url_for('doctor.patient', patient_id=xray.patient.id) }}">&larr; {{ xray.patient.name }}</a>
+<div class="page-head result-head">
+  <div>
+    <h1>X-ray of <a href="{{ url_for('doctor.patient', patient_id=xray.patient.id) }}">{{ xray.patient.name }}</a></h1>
+    <div class="meta">
+      <span class="chip">Uploaded {{ xray.upload_date|datetime }}</span>
+      {% if not xray.result %}
+        <span class="chip amber"><span class="dot"></span>Not analysed yet</span>
+      {% elif not findings %}
+        <span class="chip sage"><span class="dot"></span>No findings</span>
+      {% elif reviewed == findings|length %}
+        <span class="chip sage"><span class="dot"></span>Dentist reviewed</span>
+      {% else %}
+        <span class="chip cyan"><span class="dot"></span>Awaiting dentist review</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="xray-layout">
+  <div class="xray-stack">
+    <figure class="xray" id="xray-figure">
+      <div class="film">
+      {% if xray.result %}
+        {# Without JavaScript the picture with boxes drawn in is shown. app.js swaps in the plain X-ray and draws
+           the boxes on top, so each one can light up with its finding in the list. #}
+        <img id="xray-img" data-zoom src="{{ url_for('doctor.annotated_image', xray_id=xray.id) }}"
+             data-annotated="{{ url_for('doctor.annotated_image', xray_id=xray.id) }}"
+             data-original="{{ url_for('doctor.xray_image', xray_id=xray.id) }}" alt="Panoramic X-ray with AI findings">
+        <div class="boxes" id="xray-boxes" aria-hidden="true">
+          {% for f in findings %}
+            <i class="box{{ ' disagree' if f.review == 'disagree' }}" data-index="{{ loop.index0 }}" data-box="{{ f.box|join(',') }}"
+               style="--c: {{ colours.get(f.label, '#999') }}; --d: {{ 0.9 + loop.index0 * 0.12 }}s" hidden>
+              <span>{{ f.label }} {{ "%.0f"|format(f.confidence * 100) }}%</span></i>
+          {% endfor %}
+        </div>
+        <span class="scanline" aria-hidden="true"></span>
+      {% else %}
+        <img data-zoom src="{{ url_for('doctor.xray_image', xray_id=xray.id) }}" alt="Panoramic X-ray">
+      {% endif %}
+      </div>
+      <figcaption>
+        {% if xray.result %}
+          <label class="switch"><input type="checkbox" id="show-boxes" checked> Show AI boxes</label>
+        {% endif %}
+        <span class="muted">Click the X-ray to zoom.{% if findings %} Point at a box to find it in the list.{% endif %}</span>
+      </figcaption>
+    </figure>
+
+    {% if findings %}
+    {# Colour key, matching the boxes drawn on the X-ray. #}
+    <div class="legend">
+      {% for label, colour in colours.items() %}
+        <span><span class="swatch" style="background: {{ colour }}"></span>{{ label }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if assessment and assessment.steps %}
+    {# Suggested next steps from app/recommendations.py. Rejected findings are left out. #}
+    <section class="card next-steps">
+      <div class="panel-title">
+        <h2>Suggested next steps</h2>
+        <span class="mono muted">{{ assessment.steps|length }} to consider</span>
+      </div>
+      <p class="muted small lead-note">Based on published dental guidelines. Confirm each finding clinically first; the treatment is your decision.</p>
+      <div class="steps-grid">
+      {% for step in assessment.steps %}
+      <details class="step" open style="--c: {{ colours.get(step.label, '#999') }}">
+        <summary>
+          <span class="swatch" style="background: {{ colours.get(step.label, '#999') }}"></span>
+          <span><b>{{ step.label }}</b><small>{{ step.areas|capitalize }}</small></span>
+          {% if step.agreed %}<span class="chip sage">You agreed</span>{% elif step.low %}<span class="chip amber">Low confidence</span>{% endif %}
+        </summary>
+        {% if step.low %}<p class="note warn">The AI is not very sure here. Look at this area again before acting on it.</p>{% endif %}
+        <h3>Check</h3><p>{{ step.check }}</p>
+        <h3>If you confirm it</h3><p>{{ step.consider }}</p>
+        {% if step.note %}<p class="note">{{ step.note }}</p>{% endif %}
+        <p class="source">Source: {{ step.source }}</p>
+      </details>
+      {% endfor %}
+      </div>
+      {% if assessment.rejected %}<p class="muted small">{{ assessment.rejected }} finding{{ "s" if assessment.rejected != 1 }} you rejected {{ "are" if assessment.rejected != 1 else "is" }} left out.</p>{% endif %}
+      {% if assessment.pending %}<p class="muted small">Review the {{ assessment.pending }} open finding{{ "s" if assessment.pending != 1 }} in the AI findings list; these steps update as you agree or disagree.</p>{% endif %}
+    </section>
+    {% endif %}
+  </div>
+
+  {# Full-screen viewer: scroll to zoom, drag to move (see static/app.js). #}
+  <div id="zoom-viewer" class="zoom-viewer" hidden>
+    <div class="zoom-tools">
+      <span>Scroll to zoom · drag to move · Esc to close</span>
+      <button type="button" class="button" data-reset>Reset</button>
+      <button type="button" class="button primary" data-close>Close</button>
+    </div>
+    <img alt="Zoomed X-ray">
+  </div>
+
+  <aside class="result-panel">
+    <section class="card">
+      <div class="panel-title">
+        <h2>AI findings</h2>
+        {% if findings %}<span class="mono muted">{{ findings|length }} found</span>{% endif %}
+      </div>
+      {% if xray.result %}
+        {% if findings %}
+          <p class="small review-count">
+            Your review: {{ reviews.agree }} agreed · {{ reviews.disagree }} disagreed ·
+            {{ reviews[None] }} to review
+          </p>
+          <div class="progress" aria-hidden="true"><span style="width: {{ (100 * reviewed / findings|length)|round|int }}%"></span></div>
+          <ul class="findings">
+          {% for f in findings %}
+            <li id="finding-{{ loop.index0 }}" data-index="{{ loop.index0 }}" class="{{ 'reviewed-' ~ f.review if f.review }}"
+                style="--c: {{ colours.get(f.label, '#999') }}">
+              <span class="swatch" style="background: {{ colours.get(f.label, '#999') }}"></span>
+              <strong>{{ f.label }}</strong>
+              <span class="confidence">
+                <span class="bar"><span style="width: {{ (f.confidence * 100)|round|int }}%"></span></span>
+                {{ "%.0f"|format(f.confidence * 100) }}%
+              </span>
+              {# Agree / Disagree. Clicking the chosen one again clears it. #}
+              <form class="review" method="post"
+                    action="{{ url_for('doctor.review_finding', xray_id=xray.id, index=loop.index0) }}">
+                {{ confirm.hidden_tag() }}
+                <button name="decision" value="agree" class="pill {{ 'on' if f.review == 'agree' }}"
+                        title="I agree with this finding">&#10003; Agree</button>
+                <button name="decision" value="disagree" class="pill no {{ 'on' if f.review == 'disagree' }}"
+                        title="I disagree with this finding">&#10007; Disagree</button>
+              </form>
+            </li>
+          {% endfor %}
+          </ul>
+        {% else %}
+          <div class="no-findings"><b>No findings marked</b>
+            <span class="small">The AI did not find caries, periapical lesions, impacted teeth or bone loss. Check the whole image yourself before deciding.</span></div>
+        {% endif %}
+        {% if assessment %}<h2>Summary for this X-ray</h2><p class="summary">{{ assessment.summary }}</p>{% endif %}
+        <p class="muted small">{{ xray.result.model_version }}, analysed {{ xray.result.analysis_date|datetime }}.
+          Confidence is how sure the model is about each box, not a diagnosis.</p>
+        <div class="button-row">
+          {% if report %}
+            <a class="button primary" href="{{ url_for('doctor.download_report', xray_id=xray.id) }}">Download PDF report</a>
+          {% endif %}
+          {{ button_form(url_for('doctor.analyse_xray', xray_id=xray.id), "Re-run analysis", confirm, analyse=True) }}
+        </div>
+      {% else %}
+        <p class="muted">This X-ray has not been analysed yet.</p>
+        {{ button_form(url_for('doctor.analyse_xray', xray_id=xray.id), "Run AI analysis", confirm,
+                       css="button primary", analyse=True) }}
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2>Send to patient</h2>
+      {% if can_email %}
+        {{ button_form(url_for('doctor.send_xray', xray_id=xray.id),
+                       "Email X-ray" ~ (" and report" if report else "") ~ " to " ~ xray.patient.email,
+                       confirm, css="button primary") }}
+      {% elif not xray.patient.email %}
+        <p class="muted">This patient has no email address.</p>
+      {% else %}
+        <p class="muted">Email is not set up, so download the files and give them to the patient.</p>
+      {% endif %}
+      <div class="button-row">
+        <a class="button" href="{{ url_for('doctor.download_xray', xray_id=xray.id) }}">Download X-ray</a>
+      </div>
+    </section>
+
+    <div class="advisory">
+      <span class="mono">ADVISORY ONLY</span>
+      <b>SmartDent suggests. You decide.</b>
+      Check the whole image, not only the boxes. Agree or disagree with each finding before sharing results with the patient.
+    </div>
+  </aside>
+</div>
+
+{% with preview = url_for('doctor.xray_image', xray_id=xray.id), first_step = "Sending the X-ray to the AI" %}
+  {% include "_analysing.html" %}
+{% endwith %}
+{% endblock %}

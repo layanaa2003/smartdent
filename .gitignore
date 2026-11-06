@@ -1,0 +1,38 @@
+﻿# Dataset and model weights are large; never commit them
+# (except the trained model the app runs on)
+data/
+*.pt
+!models/best.pt
+*.pth
+*.onnx
+*.ckpt
+*.safetensors
+
+# Secrets
+.env
+.env.*
+!.env.example
+secret_key
+kaggle.json
+*.pem
+*.key
+
+# Runtime files, including the database and uploaded X-rays
+instance/
+uploads/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Build output, old backups and local screenshots
+dist/
+_restyle_tmp/
+screenshots/
+*.zip
+*.tgz

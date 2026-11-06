@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SmartDent{% endblock %} · SmartDent</title>
+  {# Same fonts as the SmartDent website. Without internet the page falls back to system fonts. #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Average+Sans&family=IBM+Plex+Mono:wght@400;500&family=Rufina:wght@400;700&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo-icon.png') }}">
+</head>
+<body class="{{ 'app' if current_user.is_authenticated else 'public' }}">
+{% if current_user.is_authenticated %}
+  {# Logged in: a sidebar with the sections of this role, and the user at the bottom. #}
+  {% set section = request.endpoint or "" %}
+  <aside class="sidebar">
+    <a class="brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='logo-icon.png') }}" alt="">
+      <span>SmartDent</span>
+    </a>
+    <nav class="side-nav" aria-label="Main">
+      {% if current_user.is_admin %}
+        <a href="{{ url_for('admin.doctors') }}" class="{{ 'active' if section.startswith('admin.') and 'patient' not in section }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.8 3.6-6 7-6s6.2 2.2 7 6"/></svg>Doctors</a>
+        <a href="{{ url_for('admin.patients') }}" class="{{ 'active' if section.startswith('admin.') and 'patient' in section }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 10h8M8 14h5"/></svg>Patients</a>
+      {% else %}
+        <a href="{{ url_for('doctor.dashboard') }}" class="{{ 'active' if section != 'doctor.add_patient' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 10h8M8 14h5"/></svg>My patients</a>
+        <a href="{{ url_for('doctor.add_patient') }}" class="{{ 'active' if section == 'doctor.add_patient' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>Add patient</a>
+      {% endif %}
+    </nav>
+    <div class="side-foot">
+      <p class="disclaimer">AI output is advisory only; the dentist makes the final diagnosis.</p>
+      <form class="logout" method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <span class="who">
+          <span class="avatar">{{ current_user.name|initials }}</span>
+          <span><b>{{ current_user.name }}</b><small>{{ 'Administrator' if current_user.is_admin else 'Dentist' }}</small></span>
+        </span>
+        <button class="button small">Log out</button>
+      </form>
+    </div>
+  </aside>
+{% else %}
+  <header class="public-bar">
+    <a class="brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='logo-icon.png') }}" alt="">
+      <span>SmartDent</span>
+    </a>
+  </header>
+{% endif %}
+
+  <main>
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+      <div class="flash {{ category }}" role="status">{{ message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+
+  {% if not current_user.is_authenticated %}
+  <footer class="disclaimer public-note">AI output is advisory only; the dentist makes the final diagnosis.</footer>
+  {% endif %}
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

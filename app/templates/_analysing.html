@@ -1,0 +1,26 @@
+{# Full-screen "AI is reading the X-ray" page. static/app.js shows it when a form with
+   data-analyse is sent (upload, Run / Re-run analysis), because the analysis runs before the next page loads. #}
+<div id="analysing" class="analysing" role="alertdialog" aria-modal="true" aria-labelledby="analysing-title" aria-live="polite" hidden>
+  <div class="analysing-inner">
+    <div>
+      <h2 id="analysing-title">SmartDent is reading the X-ray</h2>
+      <p>This usually takes a few seconds. The results open as soon as they are ready.</p>
+    </div>
+    <div class="analysing-film">
+      <img alt="" data-preview{% if preview %} src="{{ preview }}"{% else %} hidden{% endif %}>
+      <span class="ghost" aria-hidden="true"{% if preview %} hidden{% endif %}></span>
+      <span class="grid" aria-hidden="true"></span>
+      <span class="sweep" aria-hidden="true"></span>
+    </div>
+    <div class="analysing-row">
+      <ol class="steps">
+        <li data-step="0">{{ first_step or "Uploading the X-ray" }}</li>
+        <li data-step="1">Checking it is a clear panoramic image</li>
+        <li data-step="2">Looking for caries, periapical lesions, impacted teeth and bone loss</li>
+        <li data-step="3">Drawing the boxes and writing the report</li>
+      </ol>
+      <span class="timer" data-timer>0.0 s</span>
+    </div>
+    <p class="keep-open">Please keep this page open. The findings are suggestions for you to review, not a diagnosis.</p>
+  </div>
+</div>

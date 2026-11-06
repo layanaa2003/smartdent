@@ -1,0 +1,44 @@
+{# Reusable pieces for forms and tables. #}
+
+{% macro field(f, hint=None, css="") %}
+  <label class="field {{ css }}">
+    <span>{{ f.label.text }}</span>
+    {{ f(**kwargs) }}
+    {% if hint %}<small class="muted">{{ hint }}</small>{% endif %}
+    {% for error in f.errors %}<small class="error">{{ error }}</small>{% endfor %}
+  </label>
+{% endmacro %}
+
+{# A one-button form, e.g. delete or send, that still carries the CSRF token.
+   analyse=True shows the "AI is reading the X-ray" loading page while it runs. #}
+{% macro button_form(action, label, confirm_form, css="button", ask=None, analyse=False) %}
+  <form method="post" action="{{ action }}" class="inline"{% if analyse %} data-analyse{% endif %}
+        {% if ask %}onsubmit='return confirm({{ ask|tojson }});'{% endif %}>
+    {{ confirm_form.hidden_tag() }}
+    <button class="{{ css }}">{{ label }}</button>
+  </form>
+{% endmacro %}
+
+{# Search box that filters the rows of the table with this id (see static/app.js). #}
+{% macro search(table_id, placeholder) %}
+  <label class="search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+    <input type="search" data-filter="{{ table_id }}" placeholder="{{ placeholder }}" aria-label="{{ placeholder }}">
+  </label>
+{% endmacro %}
+
+{# Where an X-ray is in its journey: not analysed, findings to review, reviewed. #}
+{% macro xray_status(x) %}
+  {% if not x.result %}
+    <span class="chip amber"><span class="dot"></span>Not analysed</span>
+  {% else %}
+    {% set open = x.result.findings|selectattr("review", "none")|list|length %}
+    {% if not x.result.findings %}
+      <span class="chip sage"><span class="dot"></span>No findings</span>
+    {% elif open %}
+      <span class="chip cyan"><span class="dot"></span>{{ open }} to review</span>
+    {% else %}
+      <span class="chip sage"><span class="dot"></span>Reviewed</span>
+    {% endif %}
+  {% endif %}
+{% endmacro %}

@@ -1,0 +1,31 @@
+{# Shared by the doctor and the admin: transfer ONE patient to another doctor. #}
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Transfer {{ patient.name }}{% endblock %}
+{% block content %}
+<div class="narrow">
+  <a class="back-link" href="{{ cancel_url }}">&larr; Back</a>
+  <section class="card">
+    <h1>Transfer {{ patient.name }}</h1>
+    <div class="person" style="margin: 4px 0 16px">
+      <span class="avatar lavender">{{ patient.dentist.name|initials }}</span>
+      <span>Current doctor<small>{{ patient.dentist.name }}</small></span>
+    </div>
+    <p class="note">The patient's details, X-rays, AI results and reports all move to the new doctor.
+      {% if not current_user.is_admin %}After the transfer you will no longer see this patient.{% endif %}</p>
+    {% if has_others %}
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {{ field(form.new_doctor) }}
+        <div class="form-actions">
+          {{ form.submit(class="button primary") }}
+          <a class="button" href="{{ cancel_url }}">Cancel</a>
+        </div>
+      </form>
+    {% else %}
+      <p class="flash error">There is no other doctor to transfer to yet.</p>
+      <a class="button" href="{{ cancel_url }}">Back</a>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

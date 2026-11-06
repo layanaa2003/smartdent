@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="narrow">
+  <a class="back-link" href="{{ url_for('admin.doctors') }}">&larr; Doctors</a>
+  <section class="card">
+    <h1>{{ title }}</h1>
+    <p class="muted">The doctor logs in with this email and password.</p>
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="form-grid">
+        {{ field(form.name, css="full") }}
+        {{ field(form.email, autocomplete="off") }}
+        {{ field(form.phone) }}
+        {{ field(form.password, css="full", autocomplete="new-password",
+                 hint="Leave empty to keep the current password." if editing else "At least 8 characters.") }}
+      </div>
+      <div class="form-actions">
+        {{ form.submit(class="button primary") }}
+        <a class="button" href="{{ url_for('admin.doctors') }}">Cancel</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

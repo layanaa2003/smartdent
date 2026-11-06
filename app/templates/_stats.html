@@ -1,0 +1,42 @@
+{# Summary numbers at the top of a dashboard. Expects `stats` (see app/stats.py). #}
+{% set most = stats.by_condition.values()|max if stats.by_condition else 0 %}
+<div class="stats">
+  {% if stats.doctors is defined %}
+  <div class="stat">
+    <div class="value">{{ stats.doctors }}</div>
+    <div class="label">Doctors</div>
+  </div>
+  {% endif %}
+  <div class="stat">
+    <div class="value">{{ stats.patients }}</div>
+    <div class="label">Patients</div>
+  </div>
+  <div class="stat">
+    <div class="value">{{ stats.xrays }}</div>
+    <div class="label">X-rays</div>
+    <div class="detail">{{ stats.xrays_recent }} in the last 30 days</div>
+  </div>
+  <div class="stat">
+    <div class="value">{{ stats.analysed }}</div>
+    <div class="label">Analysed by AI</div>
+  </div>
+  {% if review_total is defined %}
+  <div class="stat highlight">
+    <div class="value">{{ review_total }}</div>
+    <div class="label">Waiting for you</div>
+    <div class="detail">X-rays to check</div>
+  </div>
+  {% endif %}
+  <div class="stat conditions">
+    <div class="label">X-rays with each finding</div>
+    <ul class="bars">
+      {% for name, count in stats.by_condition.items() %}
+      <li>
+        <span>{{ name }}</span>
+        <span class="track"><span style="width: {{ (100 * count / most)|round|int if most else 0 }}%; background: {{ finding_colours.get(name, '#999') }}"></span></span>
+        <b>{{ count }}</b>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>

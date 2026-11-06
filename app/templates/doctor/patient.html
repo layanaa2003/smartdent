@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "_macros.html" import xray_status %}
+{% block title %}{{ patient.name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('doctor.dashboard') }}">&larr; My patients</a>
+<div class="page-head">
+  <div class="profile">
+    <span class="avatar lg">{{ patient.name|initials }}</span>
+    <div class="who-block">
+      <h1>{{ patient.name }}</h1>
+      <div class="chips">
+        <span class="chip">{{ patient.dob.strftime("%d %b %Y") if patient.dob else "Date of birth not given" }}{% if patient.age is not none %} · {{ patient.age }} years{% endif %}</span>
+        <span class="chip">{{ patient.email or "No email" }}</span>
+        <span class="chip">{{ patient.phone or "No phone" }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="actions-row">
+    <a class="button" href="{{ url_for('doctor.edit_patient', patient_id=patient.id) }}">Edit details</a>
+    <a class="button" href="{{ url_for('doctor.transfer_patient_view', patient_id=patient.id) }}">Transfer patient</a>
+  </div>
+</div>
+
+<div class="patient-grid">
+  <section>
+    <div class="card-head">
+      <h2>X-ray history</h2>
+      {% if patient.xrays %}<span class="muted small">{{ patient.xrays|length }} X-ray{{ "s" if patient.xrays|length != 1 }}, newest first</span>{% endif %}
+    </div>
+    {% if patient.xrays %}
+    <ul class="history">
+      {% for x in patient.xrays %}
+      <li class="xcard">
+        <a href="{{ url_for('doctor.xray', xray_id=x.id) }}">
+          <span class="thumb"><img src="{{ url_for('doctor.xray_image', xray_id=x.id) }}" alt="" loading="lazy"></span>
+          <span class="info">
+            <span class="when">{{ x.upload_date|datetime }}</span>
+            <span class="chips">
+              {{ xray_status(x) }}
+              {% if x.result %}
+                {% for label in x.result.scores.keys() %}
+                  <span class="chip"><span class="swatch" style="background: {{ finding_colours.get(label, '#999') }}"></span>{{ label }}</span>
+                {% endfor %}
+              {% endif %}
+            </span>
+            <small class="muted">{{ x.image_type|capitalize }}</small>
+          </span>
+          <span class="go" aria-hidden="true">&rarr;</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty">
+      <strong>No X-rays yet</strong>
+      <p>Upload {{ patient.name }}'s panoramic X-ray and SmartDent will mark possible findings for you to review.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="card upload-card">
+    <h2>Upload a new X-ray</h2>
+    <form method="post" enctype="multipart/form-data" novalidate data-analyse data-upload>
+      {{ form.hidden_tag() }}
+      <label class="dropzone" data-dropzone>
+        {{ form.image(accept=".jpg,.jpeg,.png", **{"aria-describedby": "drop-hint"}) }}
+        <img class="preview" alt="" data-drop-preview hidden>
+        <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg></span>
+        <strong data-drop-name>Drop a panoramic X-ray here</strong>
+        <small id="drop-hint">or click to choose a file. JPEG or PNG.</small>
+      </label>
+      {% for error in form.image.errors %}<small class="error">{{ error }}</small>{% endfor %}
+      {{ form.submit(class="button primary wide") }}
+      <p class="muted small" style="margin: 12px 0 0">SmartDent analyses it straight away. Use fictional or anonymised images only.</p>
+    </form>
+  </section>
+</div>
+
+{% include "_analysing.html" %}
+{% endblock %}

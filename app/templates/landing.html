@@ -1,0 +1,1140 @@
+{#- Public front page of SmartDent (the marketing website), shown at "/" to visitors who are not logged in.
+    It is a self-contained page: its own styles and scripts are inside this file, so it does not extend base.html.
+    The 3D X-ray and the sample findings are drawn in the browser; they are illustrations, not patient data. -#}
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SmartDent</title>
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='logo-icon.png') }}">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="SmartDent is the AI layer dentists use to read periapical and bitewing x-rays. It highlights areas for review; your dentist makes every decision.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Average+Sans&family=IBM+Plex+Mono:wght@400;500&family=Rufina:wght@400;700&display=swap">
+<style>
+/* Layout: one calm clinical room. A 3D lightbox film floats on the right and follows the story down the page;
+   glass cards and white bands carry the copy. Single light theme by choice (clinical white). */
+:root{
+  color-scheme: light;
+  --navy:#071B3A; --ink:#10284F; --white:#FFFFFF; --pearl:#F7FAFC; --mist:#E9EEF3;
+  --sage:#8FD6BC; --mint:#DDF7EF; --aqua:#CFEFF5; --lavender:#E8E4FF; --cyan:#62D9FF;
+  --muted:#4A5D7A; --line:#DCE3EB; --sage-deep:#1F6B55;
+  --glass:rgba(255,255,255,.66); --glass-strong:rgba(255,255,255,.82);
+  --shadow:0 24px 60px -28px rgba(7,27,58,.28), 0 2px 6px -2px rgba(7,27,58,.06);
+  --f-display:"Rufina", Georgia, "Times New Roman", serif;
+  --f-ui:"Average Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --gut-l:max(16px, env(safe-area-inset-left, 0px));
+  --gut-r:max(16px, env(safe-area-inset-right, 0px));
+  --wrap:1240px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+/* no sideways scrolling on phones: iOS Safari ignores overflow-x on body alone, so html gets it too.
+   "clip" keeps the sticky story panel working ("hidden" would not); "hidden" on html is the fallback for older iPhones. */
+html{scroll-behavior:smooth;scroll-padding-top:110px;-webkit-text-size-adjust:100%;overflow-x:hidden;overflow-x:clip}
+body{background:var(--pearl);color:var(--navy);font-family:var(--f-ui);font-size:18px;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:clip}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--pearl)}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:12px}
+h1,h2,h3{text-wrap:balance;margin:0}
+p{margin:0}
+.wrap{max-width:var(--wrap);margin:0 auto;padding-left:var(--gut-l);padding-right:var(--gut-r)}
+
+/* ambience */
+.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:var(--pearl)}
+#scene{position:fixed;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;display:block}
+main{position:relative}
+
+/* nav */
+.nav{position:fixed;z-index:50;top:calc(env(safe-area-inset-top,0px) + 14px);left:0;right:0;padding-left:var(--gut-l);padding-right:var(--gut-r)}
+.nav-bar{max-width:var(--wrap);margin:0 auto;display:flex;align-items:center;gap:16px;padding:10px 10px 10px 22px;border-radius:999px;
+  background:rgba(255,255,255,.62);backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);
+  border:1px solid var(--mist);box-shadow:0 12px 40px -18px rgba(7,27,58,.25)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:700;font-size:21px;letter-spacing:-.02em;color:var(--navy);flex:none}
+.brand .brand-mark{height:34px;width:auto;flex:none}
+.links{display:flex;gap:2px;margin:0 auto;padding:4px;border-radius:999px;background:rgba(233,238,243,.6);list-style:none}
+.links a{display:block;padding:8px 15px;border-radius:999px;text-decoration:none;font-size:15px;font-weight:500;color:var(--ink);transition:background .25s,color .25s}
+.links a:hover{background:rgba(255,255,255,.8)}
+.links a.on{background:var(--white);color:var(--navy);box-shadow:0 2px 10px -4px rgba(7,27,58,.25)}
+.nav-cta{display:flex;gap:8px;align-items:center;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:0;cursor:pointer;text-decoration:none;border-radius:999px;font-weight:600;font-size:16px;line-height:1.2;padding:14px 24px;transition:transform .2s, box-shadow .2s, background .2s;white-space:nowrap}
+.btn:hover{transform:translateY(-1px)}
+.btn-navy{background:var(--navy);color:var(--white);box-shadow:0 10px 24px -12px rgba(7,27,58,.7)}
+.btn-navy:hover{background:var(--ink)}
+.btn-sage{background:var(--sage);color:var(--navy)}
+.btn-sage:hover{background:#A3DEC8}
+.btn-ghost{background:transparent;color:var(--navy);box-shadow:inset 0 0 0 1px var(--line)}
+.btn-ghost:hover{background:rgba(255,255,255,.7)}
+.btn-sm{padding:11px 18px;font-size:15px}
+.btn .arr{display:inline-block;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.16);position:relative;flex:none}
+.btn .arr::after{content:"";position:absolute;inset:0;margin:auto;width:6px;height:6px;border-top:1.6px solid currentColor;border-right:1.6px solid currentColor;transform:translateX(-1px) rotate(45deg)}
+.menu-btn{display:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--white);cursor:pointer;position:relative}
+.menu-btn span,.menu-btn span::before{position:absolute;left:13px;right:13px;height:1.6px;background:var(--navy);content:"";transition:transform .25s}
+.menu-btn span{top:21px}
+.menu-btn span::before{left:0;right:0;top:-6px}
+.menu-btn[aria-expanded="true"] span{transform:rotate(45deg)}
+.menu-btn[aria-expanded="true"] span::before{transform:translateY(6px) rotate(-90deg)}
+.mobile-menu{max-width:var(--wrap);margin:10px auto 0;padding:14px;border-radius:28px;background:rgba(255,255,255,.9);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid var(--mist);box-shadow:var(--shadow)}
+.mobile-menu ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mobile-menu a{display:block;padding:12px 16px;border-radius:18px;background:var(--pearl);text-decoration:none;font-weight:500}
+.mobile-menu .btn{width:100%;margin-top:10px}
+
+/* shared */
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--sage);box-shadow:0 0 0 4px var(--mint)}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:var(--mint);color:var(--sage-deep);font-size:14px;font-weight:600;line-height:1.3}
+.pill-cyan{background:rgba(98,217,255,.16);color:#0B5E7A}
+.pill-lav{background:var(--lavender);color:#3F3880}
+.pill-ph{background:#FFF4D6;color:#7A5300}
+.mono{font-family:var(--f-mono);font-size:13px;letter-spacing:.02em}
+.h2{font-family:var(--f-display);font-weight:400;font-size:clamp(40px, 5.4vw, 72px);line-height:1.02;letter-spacing:0;color:var(--navy)}
+.h2 em{font-style:italic;color:var(--ink)}
+.lede{font-size:clamp(17px, 1.5vw, 20px);line-height:1.7;color:var(--muted);max-width:60ch}
+.glass{background:var(--glass);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);border:1px solid rgba(233,238,243,.95);border-radius:28px;box-shadow:var(--shadow)}
+section{position:relative}
+.band{background:var(--white);border-radius:48px 48px 0 0;margin-top:-48px}
+.band-pearl{background:var(--pearl)}
+
+/* hero */
+.hero{padding-top:calc(env(safe-area-inset-top,0px) + 150px);padding-bottom:110px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:32px;align-items:center}
+.hero-copy{display:flex;flex-direction:column;gap:28px;min-width:0}
+.h1{font-family:var(--f-display);font-weight:400;font-size:clamp(40px, 6.6vw, 96px);line-height:.98;letter-spacing:0;color:var(--navy)}
+.h1 .hp{display:inline-block;font-family:var(--f-ui);font-size:.42em;font-weight:600;letter-spacing:-.01em;vertical-align:.32em;padding:.28em .7em;border-radius:999px;background:var(--mint);color:var(--sage-deep);line-height:1;margin:0 .08em}
+.h1 em{font-style:italic;color:var(--ink)}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px}
+.hero-meta{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:15px;color:var(--muted);padding-top:6px}
+.hero-meta span{display:inline-flex;align-items:center;gap:8px}
+.hero-meta span::before{content:"";width:16px;height:16px;border-radius:50%;background:var(--mint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.2l2.2 2.2 4.8-4.8' fill='none' stroke='%231F6B55' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/16px no-repeat}
+.stage{position:relative;min-width:0}
+.hero-stage{height:clamp(440px, 46vw, 640px)}
+.float{position:absolute;z-index:4;padding:14px 16px;border-radius:22px;font-size:14px;line-height:1.45;animation:bob 7s ease-in-out infinite}
+.float b{display:block;font-size:15px;color:var(--navy)}
+.float .mono{color:var(--muted)}
+.f1{top:2%;left:-4%;width:230px}
+.f2{bottom:4%;right:0;width:250px;animation-delay:-2.5s}
+.f3{bottom:14%;left:-8%;display:flex;gap:10px;align-items:center;animation-delay:-4.5s}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 4px rgba(98,217,255,.2);flex:none}
+.avatar{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--navy);background:linear-gradient(135deg,var(--mint),var(--aqua))}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+/* principle strip */
+.principle{padding-block:0 72px}
+.principle-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:28px;align-items:center;padding:28px 32px}
+.principle-card p{font-size:clamp(18px,1.6vw,22px);line-height:1.5;color:var(--ink)}
+.principle-card p strong{color:var(--navy)}
+.seal{width:64px;height:64px;border-radius:50%;background:var(--navy);display:grid;place-items:center;flex:none}
+
+/* overview / story */
+.overview{padding-block:72px 56px}
+.ov-head{display:grid;gap:16px;max-width:780px;margin-bottom:24px}
+.ov-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:48px}
+.ov-stage-wrap{grid-column:2;grid-row:1}
+.ov-stage{position:sticky;top:120px;height:min(640px, calc(100vh - 160px))}
+.ov-steps{grid-column:1;grid-row:1;display:flex;flex-direction:column}
+.step{min-height:72vh;display:flex;align-items:center}
+.step:last-child{min-height:56vh}
+.step-card{padding:30px;display:grid;gap:14px;transition:transform .5s, box-shadow .5s, background .5s}
+.step-card .num{font-family:var(--f-mono);font-size:13px;color:var(--muted);letter-spacing:.08em}
+.step-card h3{font-family:var(--f-display);font-weight:400;font-size:clamp(32px,3.2vw,44px);line-height:1.05}
+.step-card p{color:var(--muted);font-size:18px}
+.step.active .step-card{background:var(--glass-strong);transform:translateX(8px);box-shadow:0 30px 70px -30px rgba(7,27,58,.38)}
+.step.active .num{color:var(--sage-deep)}
+.step-bar{height:3px;border-radius:3px;background:var(--mist);overflow:hidden}
+.step-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--sage),var(--cyan));transition:width .6s}
+.step.active .step-bar i{width:100%}
+
+/* services */
+.services{padding-block:104px 96px}
+.sec-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:40px;align-items:center;margin-bottom:36px}
+.sec-head .lede{justify-self:end}
+.svc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.svc{display:flex;flex-direction:column;gap:16px;padding:28px;border-radius:30px;background:var(--pearl);border:1px solid var(--mist);transition:transform .35s, box-shadow .35s, background .35s;min-width:0}
+.svc:hover{transform:translateY(-6px);background:var(--white);box-shadow:var(--shadow)}
+.svc-ico{width:56px;height:56px;border-radius:18px;display:grid;place-items:center}
+.svc h3{font-size:22px;font-weight:600;letter-spacing:-.01em;line-height:1.25}
+.svc p{font-size:17px;color:var(--muted)}
+.svc .mono{margin-top:auto;padding-top:14px;border-top:1px solid var(--mist);color:var(--ink)}
+
+/* doctors */
+.doctors{padding-block:104px 96px}
+.doc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.doc{border-radius:32px;overflow:hidden;background:var(--white);border:1px solid var(--mist);box-shadow:var(--shadow);display:flex;flex-direction:column;min-width:0}
+.doc-portrait{aspect-ratio:4/3.4;max-width:100%;position:relative;display:grid;place-items:center;overflow:hidden}
+.doc-portrait .ph-silhouette{width:46%;opacity:.9}
+.doc-portrait .pill{position:absolute;top:16px;left:16px}
+.doc-body{padding:24px 26px 28px;display:grid;gap:8px}
+.doc-body h3{font-family:var(--f-display);font-weight:400;font-size:32px;line-height:1.1}
+.doc-body .role{font-weight:600;color:var(--ink)}
+.doc-body p{color:var(--muted);font-size:17px}
+.doc-body .mono{color:var(--muted)}
+.ph-note{margin-top:28px;font-size:15px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* testimonials */
+.testimonials{padding-block:88px;background:var(--navy);color:var(--white);border-radius:48px;margin-inline:max(8px, env(safe-area-inset-left,0px));overflow:hidden}
+.testimonials .h2{color:var(--white)}
+.testimonials .h2 em{color:var(--sage)}
+.testimonials .lede{color:#B8C6DB}
+.testimonials .eyebrow{color:#B8C6DB}
+.testimonials .eyebrow::before{box-shadow:0 0 0 4px rgba(143,214,188,.2)}
+.t-grid{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:20px}
+.t{border-radius:30px;padding:30px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;gap:22px;min-width:0}
+.t:first-child{background:linear-gradient(160deg, rgba(143,214,188,.2), rgba(98,217,255,.08));}
+.t blockquote{margin:0;font-family:var(--f-display);font-weight:400;font-size:clamp(20px,1.8vw,24px);line-height:1.45;color:var(--white)}
+.t:not(:first-child) blockquote{font-size:clamp(18px,1.5vw,20px)}
+.t footer{margin-top:auto;display:flex;align-items:center;gap:12px;font-size:15px;color:#B8C6DB}
+.t footer b{color:var(--white);display:block;font-weight:600}
+.t .pill-ph{align-self:flex-start}
+
+/* dashboard */
+.dashboard{padding-block:96px}
+.app{border-radius:34px;background:var(--white);border:1px solid var(--mist);box-shadow:0 40px 100px -40px rgba(7,27,58,.35);overflow:hidden}
+.app-top{display:flex;align-items:center;gap:14px;padding:16px 22px;border-bottom:1px solid var(--mist);background:var(--pearl);flex-wrap:wrap}
+.app-top .who{display:flex;align-items:center;gap:10px;font-weight:600}
+.app-top .sp{flex:1}
+.app-body{display:grid;grid-template-columns:240px minmax(0,1fr) 320px;min-height:520px}
+.timeline{border-right:1px solid var(--mist);padding:20px 16px;display:flex;flex-direction:column;gap:8px}
+.timeline h4,.findings h4{margin:0 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.visit{display:grid;gap:2px;padding:12px 14px;border-radius:16px;border:1px solid transparent;cursor:pointer;background:none;text-align:left;width:100%}
+.visit:hover{background:var(--pearl)}
+.visit.sel{background:var(--mint);border-color:rgba(143,214,188,.6)}
+.visit b{font-weight:600;font-size:15px}
+.visit span{font-size:13px;color:var(--muted)}
+.viewer{padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0;background:linear-gradient(180deg,var(--pearl),var(--white))}
+.film{position:relative;border-radius:22px;overflow:hidden;background:#111a26;aspect-ratio:1600/800;max-width:100%}
+.film img{display:block;width:100%;height:100%;object-fit:cover}
+.film .box{position:absolute;border:2px solid var(--cyan);border-radius:10px;box-shadow:0 0 0 4px rgba(98,217,255,.18), 0 0 24px rgba(98,217,255,.45)}
+.film .box.dash{border:2px dashed rgba(207,239,245,.9);box-shadow:none}
+.film .tag{position:absolute;transform:translateY(calc(-100% - 8px));white-space:nowrap;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--cyan);color:var(--navy)}
+.film .tag.soft{background:var(--aqua)}
+.film .scanline{position:absolute;top:0;bottom:0;width:2px;background:var(--cyan);box-shadow:0 0 18px 6px rgba(98,217,255,.5);left:0;animation:scan 4.5s cubic-bezier(.6,0,.4,1) infinite;opacity:.85}
+@keyframes scan{0%{left:0;opacity:0}8%{opacity:.85}60%{left:100%;opacity:.85}68%,100%{left:100%;opacity:0}}
+.viewer-meta{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted)}
+.findings{border-left:1px solid var(--mist);padding:20px;display:flex;flex-direction:column;gap:14px}
+.finding{border-radius:20px;padding:16px;border:1px solid var(--mist);display:grid;gap:8px}
+.finding b{font-size:16px}
+.finding p{font-size:15px;color:var(--muted);line-height:1.55}
+.next{border-radius:20px;padding:16px;background:var(--navy);color:var(--white);display:grid;gap:8px}
+.next p{font-size:15px;color:#C9D5E6;line-height:1.55}
+.dash-foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center;margin-top:24px;color:var(--muted);font-size:15px}
+
+/* faqs */
+.faqs{padding-block:104px 96px}
+.faq-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:56px;align-items:start}
+.faq-side{position:sticky;top:130px;display:grid;gap:16px}
+.faq-list{display:grid;gap:12px}
+details{border-radius:24px;background:var(--white);border:1px solid var(--mist);transition:box-shadow .3s}
+details[open]{box-shadow:var(--shadow)}
+summary{list-style:none;cursor:pointer;padding:22px 26px;display:flex;justify-content:space-between;gap:20px;align-items:center;font-weight:600;font-size:19px;line-height:1.4}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";flex:none;width:32px;height:32px;border-radius:50%;background:var(--mint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 10v12M10 16h12' stroke='%23071B3A' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center no-repeat;transition:transform .3s}
+details[open] summary::after{transform:rotate(45deg)}
+details .ans{padding:0 26px 24px;color:var(--muted);max-width:62ch}
+
+/* booking */
+.book{padding-block:72px 96px}
+.book-card{border-radius:40px;background:var(--navy);color:var(--white);padding:clamp(28px,5vw,64px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;position:relative;overflow:hidden}
+.book-card .h2{color:var(--white)}
+.book-card .h2 em{color:var(--sage)}
+.book-card .lede{color:#C0CDE0}
+.book-steps{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:12px;color:#DCE6F2}
+.book-steps li{display:flex;gap:14px;align-items:baseline}
+.book-steps .mono{color:var(--sage)}
+form.bf{position:relative;background:var(--white);color:var(--navy);border-radius:30px;padding:28px;display:grid;gap:14px;grid-template-columns:1fr 1fr}
+.fld{display:grid;gap:6px;min-width:0}
+.fld.full{grid-column:1/-1}
+.fld label{font-size:14px;font-weight:600;color:var(--ink)}
+.fld input,.fld select,.fld textarea{width:100%;border-radius:16px;border:1px solid var(--line);background:var(--pearl);padding:13px 16px;font-size:16px;outline:none;transition:border-color .2s, box-shadow .2s}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--sage);box-shadow:0 0 0 4px var(--mint)}
+.fld textarea{min-height:88px;resize:vertical}
+.check{grid-column:1/-1;display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);line-height:1.5}
+.check input{margin-top:3px;accent-color:var(--navy);width:18px;height:18px;flex:none}
+.bf .btn{grid-column:1/-1}
+.form-msg{grid-column:1/-1;border-radius:16px;padding:14px 16px;background:var(--mint);color:var(--sage-deep);font-size:15px;font-weight:500}
+
+/* footer */
+.foot{padding-block:56px 48px;border-top:1px solid var(--mist);background:var(--white)}
+.foot-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:32px;align-items:start}
+.foot p{color:var(--muted);font-size:15px;max-width:52ch}
+.foot ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:15px}
+.foot a{text-decoration:none;color:var(--ink)}
+.foot a:hover{text-decoration:underline}
+.foot .legal{margin-top:40px;padding-top:20px;border-top:1px solid var(--mist);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+
+/* login modal */
+.modal{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:20px var(--gut-r) 20px var(--gut-l);background:rgba(7,27,58,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.modal-card{width:min(440px,100%);background:var(--white);border-radius:32px;padding:30px;box-shadow:0 40px 100px -30px rgba(7,27,58,.5);display:grid;gap:16px;position:relative}
+.modal-card h2{font-family:var(--f-display);font-weight:400;font-size:38px;line-height:1.05}
+.seg{display:flex;padding:4px;border-radius:999px;background:var(--mist);gap:4px}
+.seg button{flex:1;border:0;border-radius:999px;padding:9px 10px;background:transparent;cursor:pointer;font-weight:600;font-size:14px;color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--white);box-shadow:0 2px 10px -4px rgba(7,27,58,.3);color:var(--navy)}
+.x{position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--white);cursor:pointer;font-size:20px;line-height:1}
+
+/* fallback for no WebGL */
+.fallback-film{position:absolute;left:4%;right:4%;top:50%;transform:translateY(-50%);aspect-ratio:1600/800;max-width:100%;border-radius:28px;overflow:hidden;box-shadow:0 30px 80px -30px rgba(7,27,58,.5);border:10px solid var(--ink);background:#111a26}
+.fallback-film img{width:100%;height:100%;object-fit:contain;display:block}
+
+/* responsive */
+@media (max-width:1180px){
+  .links{display:none}
+  .menu-btn{display:block}
+  .nav-cta .login{display:none}
+  .nav-bar{justify-content:space-between}
+  .svc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .app-body{grid-template-columns:200px minmax(0,1fr)}
+  .findings{grid-column:1/-1;border-left:0;border-top:1px solid var(--mist);display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .findings h4{grid-column:1/-1}
+}
+@media (max-width:900px){
+  body{font-size:17px}
+  .hero{padding-top:calc(env(safe-area-inset-top,0px) + 120px);padding-bottom:90px}
+  .hero-grid{grid-template-columns:minmax(0,1fr)}
+  .hero-stage{height:380px;order:-1}  /* the 3D x-ray leads the page when the hero stacks */
+  .f1{left:0;top:0}
+  .f2{right:0;bottom:0}
+  .f3{display:none}
+  .principle-card{grid-template-columns:auto minmax(0,1fr)}
+  .principle-card .btn{grid-column:1/-1;justify-self:start}
+  .ov-grid{display:block}
+  .ov-stage-wrap{display:contents}
+  .ov-stage{top:calc(env(safe-area-inset-top,0px) + 84px);height:38vh;z-index:2;margin-bottom:16px;border-radius:28px;background:rgba(247,250,252,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .step{min-height:58vh}
+  .step.active .step-card{transform:none}
+  .sec-head{grid-template-columns:minmax(0,1fr)}
+  .sec-head .lede{justify-self:start}
+  .doc-grid{grid-template-columns:minmax(0,1fr)}
+  .doc{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}
+  .doc-portrait{aspect-ratio:auto;min-height:100%}
+  .t-grid{grid-template-columns:minmax(0,1fr)}
+  .faq-grid{grid-template-columns:minmax(0,1fr);gap:32px}
+  .faq-side{position:static}
+  .book-card{grid-template-columns:minmax(0,1fr)}
+  .foot-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .foot-grid>div:first-child{grid-column:1/-1}
+  .band{border-radius:36px 36px 0 0}
+}
+@media (max-width:640px){
+  .nav-cta .book-nav{display:none}
+  .nav-bar{padding:8px 8px 8px 18px}
+  .hero-stage{height:300px;order:0}  /* phones: headline and Book button first */
+  .f1{width:200px;padding:12px 14px}
+  .f1,.f2{display:none}  /* on phones the boxed x-ray speaks for itself */
+  .svc-grid{grid-template-columns:minmax(0,1fr)}
+  .doc{display:flex;flex-direction:column}
+  .doc-portrait{aspect-ratio:16/10;min-height:0}
+  .app-body{grid-template-columns:minmax(0,1fr)}
+  .timeline{border-right:0;border-bottom:1px solid var(--mist);flex-direction:row;overflow-x:auto}
+  .timeline h4{display:none}
+  .visit{min-width:150px}
+  .findings{grid-template-columns:minmax(0,1fr)}
+  form.bf{grid-template-columns:minmax(0,1fr);padding:22px}
+  .principle-card{grid-template-columns:minmax(0,1fr);padding:24px}
+  summary{font-size:17px;padding:18px 20px}
+  details .ans{padding:0 20px 20px}
+  .services,.doctors,.dashboard,.faqs,.testimonials{padding-block:72px}
+  .testimonials{border-radius:36px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .float,.film .scanline{animation:none}
+  .btn,.svc,.step-card{transition:none}
+}
+</style>
+</head><body>
+
+<div class="ambient" aria-hidden="true"></div>
+<canvas id="scene" aria-hidden="true"></canvas>
+
+<header class="nav">
+  <nav class="nav-bar" aria-label="Main">
+    <a class="brand" href="#top" aria-label="SmartDent home">
+      <img class="brand-mark" src="data:image/png;base64,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" alt="">
+      SmartDent
+    </a>
+    <ul class="links">
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#doctors">Doctors</a></li>
+      <li><a href="#testimonials">Testimonials</a></li>
+      <li><a href="#dashboard">Dashboard</a></li>
+      <li><a href="#faqs">FAQs</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a class="btn btn-ghost btn-sm login" href="{{ url_for('auth.login') }}" data-login>Doctor/Admin Login</a>
+      <a class="btn btn-navy btn-sm book-nav" href="#book">Book an X-Ray Review</a>
+      <button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu"><span></span></button>
+    </div>
+  </nav>
+  <div class="mobile-menu" id="mobile-menu" hidden>
+    <ul>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#doctors">Doctors</a></li>
+      <li><a href="#testimonials">Testimonials</a></li>
+      <li><a href="#dashboard">Dashboard</a></li>
+      <li><a href="#faqs">FAQs</a></li>
+    </ul>
+    <a class="btn btn-navy" href="#book">Book an X-Ray Review</a>
+    <a class="btn btn-ghost" href="{{ url_for('auth.login') }}" data-login>Doctor/Admin Login</a>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow">AI-assisted · Dentist-led</span>
+        <h1 class="h1">See your x-rays clearly, with your dentist beside you.</h1>
+        <p class="lede">SmartDent is the AI layer dentists use to read panoramic x-rays. It flags possible caries, periapical lesions, impacted teeth and bone loss, shows how confident it is about each one, and keeps every patient's imaging history in one place. A dentist reviews every finding before it reaches the patient.</p>
+        <div class="hero-actions">
+          <a class="btn btn-navy" href="#book">Book an X-Ray Review <span class="arr"></span></a>
+          <a class="btn btn-ghost" href="#overview">See how it works</a>
+        </div>
+        <div class="hero-meta">
+          <span>Panoramic (OPG) x-rays</span>
+          <span>Four findings, each with a confidence score</span>
+          <span>PDF reports for patients</span>
+        </div>
+      </div>
+      <div class="stage hero-stage" id="stage-hero">
+        <div class="float glass f1">
+          <div class="row"><span class="dot"></span><span class="mono">PANORAMIC · OPG · 14 OCT</span></div>
+          <b style="margin-top:6px">Possible caries</b>
+          <span>Upper right first molar. 81% confidence, flagged for the dentist.</span>
+        </div>
+        <div class="float glass f2">
+          <div class="row"><span class="pill pill-cyan">Awaiting dentist review</span></div>
+          <b style="margin-top:8px">Nothing is final yet</b>
+          <span>SmartDent suggests. The dentist agrees or disagrees with each finding.</span>
+        </div>
+        <div class="float glass f3">
+          <span class="avatar">CH</span>
+          <div><b>Reviewed by your dentist</b><span class="mono">SIGN-OFF REQUIRED</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRINCIPLE -->
+  <section class="principle">
+    <div class="wrap">
+      <div class="glass principle-card">
+        <span class="seal" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30"><path d="M15 3l9 3.5v7c0 6-4 10.4-9 12.5C10 23.9 6 19.5 6 13.5v-7L15 3z" fill="none" stroke="#8FD6BC" stroke-width="1.8"/><path d="M10.8 14.6l3 3 5.6-5.8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <p><strong>SmartDent does not diagnose.</strong> It points your dentist to the parts of an image worth a second look. The clinical decision, and the conversation with you, always belong to a qualified dentist.</p>
+        <a class="btn btn-sage btn-sm" href="#faqs">Read our approach</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- OVERVIEW / STORY -->
+  <section class="overview" id="overview">
+    <div class="wrap">
+      <div class="ov-head">
+        <h2 class="h2">One x-ray, four careful steps.</h2>
+        <p class="lede">Scroll through what happens to a panoramic x-ray from the moment it is uploaded to the moment your dentist talks you through it.</p>
+      </div>
+      <div class="ov-grid">
+        <div class="ov-stage-wrap"><div class="stage ov-stage" id="stage-ov"></div></div>
+        <div class="ov-steps">
+          <div class="step active" data-step="0">
+            <div class="glass step-card">
+              <span class="num">STEP 1 OF 4 · UPLOAD</span>
+              <h3>Your x-ray is added to your record</h3>
+              <p>Your dentist takes a panoramic x-ray as usual and uploads it to your patient record in SmartDent. Nothing changes in the chair.</p>
+              <div class="step-bar"><i></i></div>
+            </div>
+          </div>
+          <div class="step" data-step="1">
+            <div class="glass step-card">
+              <span class="num">STEP 2 OF 4 · SCAN</span>
+              <h3>SmartDent reads the image</h3>
+              <p>A detection model trained on de-identified panoramic x-rays looks for four things: caries, periapical lesions, impacted teeth and bone loss.</p>
+              <div class="step-bar"><i></i></div>
+            </div>
+          </div>
+          <div class="step" data-step="2">
+            <div class="glass step-card">
+              <span class="num">STEP 3 OF 4 · HIGHLIGHT</span>
+              <h3>Possible findings are boxed</h3>
+              <p>Each possible finding gets a box, a label and a confidence score. These are prompts for a professional, not results for you.</p>
+              <div class="step-bar"><i></i></div>
+            </div>
+          </div>
+          <div class="step" data-step="3">
+            <div class="glass step-card">
+              <span class="num">STEP 4 OF 4 · REVIEW</span>
+              <h3>Your dentist makes the call</h3>
+              <p>Your dentist checks the whole image, agrees or disagrees with each box, and adds their own judgement. Then they explain the plan and can send you the x-ray and a PDF report.</p>
+              <div class="step-bar"><i></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section class="services band" id="services">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <h2 class="h2">One image of the whole mouth, read twice.</h2>
+        </div>
+        <p class="lede">Available at dental practices that use SmartDent. Your dentist leads every appointment; SmartDent works quietly in the background.</p>
+      </div>
+      <div class="svc-grid">
+        <article class="svc">
+          <span class="svc-ico" style="background:var(--aqua)"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#071B3A" stroke-width="1.6"><rect x="2" y="7" width="24" height="14" rx="5"/><path d="M6 13.5c2.5 2 5 3 8 3s5.5-1 8-3" stroke="#0B9CC9" stroke-linecap="round"/></svg></span>
+          <h3>Panoramic x-ray review</h3>
+          <p>Upper and lower jaws, every tooth and the surrounding bone in a single image.</p>
+          <span class="mono">Panoramic (OPG) · JPEG or PNG</span>
+        </article>
+        <article class="svc">
+          <span class="svc-ico" style="background:var(--mint)"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#071B3A" stroke-width="1.6"><rect x="4" y="4" width="9" height="9" rx="2.5"/><rect x="15" y="4" width="9" height="9" rx="2.5" stroke="#1F6B55"/><rect x="4" y="15" width="9" height="9" rx="2.5" stroke="#1F6B55"/><rect x="15" y="15" width="9" height="9" rx="2.5"/></svg></span>
+          <h3>Four findings, clearly marked</h3>
+          <p>Caries, periapical lesions, impacted teeth and bone loss, each boxed with a confidence score.</p>
+          <span class="mono">Boxes · labels · confidence</span>
+        </article>
+        <article class="svc">
+          <span class="svc-ico" style="background:var(--lavender)"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#071B3A" stroke-width="1.6"><circle cx="14" cy="14" r="10.5"/><path d="M14 8v6l4 2.5" stroke-linecap="round"/><path d="M3.5 14H1.5M26.5 14h-2" stroke="#5A50B5"/></svg></span>
+          <h3>Imaging history</h3>
+          <p>Every x-ray and AI result for a patient in one record, so your dentist can see what has changed.</p>
+          <span class="mono">Visit-to-visit history</span>
+        </article>
+        <article class="svc">
+          <span class="svc-ico" style="background:#FDEFE3"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#071B3A" stroke-width="1.6"><path d="M7 3.5h10l5 5v16H7z"/><path d="M17 3.5v5h5M10.5 14h8M10.5 18h8" stroke-linecap="round"/></svg></span>
+          <h3>Reports you can take home</h3>
+          <p>A PDF report with your dentist's summary, plus the x-ray itself, by email or as a download.</p>
+          <span class="mono">PDF report · email</span>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOCTORS -->
+  <section class="doctors band band-pearl" id="doctors">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <h2 class="h2">The people who read your results.</h2>
+        </div>
+        <p class="lede">SmartDent is used by registered dentists who stay responsible for every decision. Meet a few of the clinicians who review highlights day to day.</p>
+      </div>
+      <div class="doc-grid">
+        <article class="doc">
+          <div class="doc-portrait" style="background:linear-gradient(160deg,var(--aqua),var(--lavender))">
+            <span class="pill pill-ph">Placeholder profile</span>
+            <svg class="ph-silhouette" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="44" r="22" fill="#fff" opacity=".85"/><path d="M18 118c4-26 21-40 42-40s38 14 42 40z" fill="#fff" opacity=".85"/></svg>
+          </div>
+          <div class="doc-body">
+            <h3>Dr Clara Hale</h3>
+            <span class="role">Clinical Lead, Restorative Dentistry</span>
+            <p>Reviews bitewing highlights and leads how SmartDent findings are explained to patients.</p>
+            <span class="mono">Registration no. 000000 · placeholder</span>
+          </div>
+        </article>
+        <article class="doc">
+          <div class="doc-portrait" style="background:linear-gradient(160deg,var(--mint),var(--aqua))">
+            <span class="pill pill-ph">Placeholder profile</span>
+            <svg class="ph-silhouette" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="44" r="22" fill="#fff" opacity=".85"/><path d="M18 118c4-26 21-40 42-40s38 14 42 40z" fill="#fff" opacity=".85"/></svg>
+          </div>
+          <div class="doc-body">
+            <h3>Dr Samir Okafor</h3>
+            <span class="role">Dentist, Endodontics</span>
+            <p>Reads periapical images for root and bone changes, and signs off root-canal follow-ups.</p>
+            <span class="mono">Registration no. 000000 · placeholder</span>
+          </div>
+        </article>
+        <article class="doc">
+          <div class="doc-portrait" style="background:linear-gradient(160deg,var(--lavender),var(--mint))">
+            <span class="pill pill-ph">Placeholder profile</span>
+            <svg class="ph-silhouette" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="44" r="22" fill="#fff" opacity=".85"/><path d="M18 118c4-26 21-40 42-40s38 14 42 40z" fill="#fff" opacity=".85"/></svg>
+          </div>
+          <div class="doc-body">
+            <h3>Dr Mei Lin Brooks</h3>
+            <span class="role">Dentist, Family &amp; Paediatric Care</span>
+            <p>Sees children and families, and makes sure every result is explained at the right level.</p>
+            <span class="mono">Registration no. 000000 · placeholder</span>
+          </div>
+        </article>
+      </div>
+      <p class="ph-note"><span class="pill pill-ph">Placeholder</span> Names, roles and registration numbers are examples. Replace them with real clinicians before launch.</p>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="testimonials" id="testimonials">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <h2 class="h2">Testimonials</h2>
+        </div>
+        <p class="lede">What patients and clinicians tell us after their first SmartDent-supported review.</p>
+      </div>
+      <div class="t-grid">
+        <figure class="t" style="margin:0">
+          <span class="pill pill-ph">Sample testimonial · replace before launch</span>
+          <blockquote>“My dentist turned the screen towards me and showed me the exact spot she wanted to keep an eye on. I left knowing what we were watching and why.”</blockquote>
+          <footer><span class="avatar">P</span><span><b>Patient name</b>Returning patient · placeholder</span></footer>
+        </figure>
+        <figure class="t" style="margin:0">
+          <span class="pill pill-ph">Sample testimonial</span>
+          <blockquote>“Getting the x-ray and a plain-English report by email meant I could show my family exactly what the dentist had explained.”</blockquote>
+          <footer><span class="avatar">P</span><span><b>Patient name</b>New patient · placeholder</span></footer>
+        </figure>
+        <figure class="t" style="margin:0">
+          <span class="pill pill-ph">Sample testimonial</span>
+          <blockquote>“It doesn’t tell me what to do. It makes sure I’ve looked twice at the areas I’d want to look at anyway.”</blockquote>
+          <footer><span class="avatar">D</span><span><b>Dentist name</b>General dentist · placeholder</span></footer>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="dashboard" id="dashboard">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <h2 class="h2">Every finding, checked by a dentist.</h2>
+        </div>
+        <p class="lede">This is the dentist's view of an AI result. Each box comes with a confidence score, and the dentist agrees or disagrees with it before the report goes to the patient.</p>
+      </div>
+      <div class="app" aria-label="Dentist dashboard preview">
+        <div class="app-top">
+          <span class="who"><span class="avatar">SE</span>Sara Example</span>
+          <span class="pill pill-ph">Example data · not a real patient</span>
+          <span class="sp"></span>
+          <span class="pill pill-cyan">Awaiting dentist review</span>
+        </div>
+        <div class="app-body">
+          <div class="timeline" role="list">
+            <h4>X-ray history</h4>
+            <button class="visit sel" type="button" data-visit="0"><b>Panoramic</b><span>14 Oct 2026 · 3 findings</span></button>
+            <button class="visit" type="button" data-visit="1"><b>Panoramic</b><span>2 Mar 2026 · 1 finding</span></button>
+            <button class="visit" type="button" data-visit="2"><b>Panoramic</b><span>18 Sep 2025 · no findings</span></button>
+          </div>
+          <div class="viewer">
+            <div class="film" id="film">
+              <img id="film-img" alt="Example panoramic x-ray with three possible findings boxed">
+              <span class="scanline" aria-hidden="true"></span>
+            </div>
+            <div class="viewer-meta mono"><span>PANORAMIC · OPG</span><span>YOLOv8 · best.pt</span><span id="visit-label">Uploaded 14 Oct 2026</span></div>
+          </div>
+          <div class="findings">
+            <h4>AI findings · your review</h4>
+            <div class="finding">
+              <span class="row"><span class="pill">Agreed</span><span class="mono" style="color:var(--muted)">81%</span></span>
+              <b>Caries</b>
+              <p>Upper right first molar. You agreed; it will appear in the patient's report.</p>
+            </div>
+            <div class="finding">
+              <span class="row"><span class="pill pill-cyan">To review</span><span class="mono" style="color:var(--muted)">57%</span></span>
+              <b>Periapical lesion</b>
+              <p>Lower right second premolar, at the root tip.</p>
+            </div>
+            <div class="finding">
+              <span class="row"><span class="pill pill-cyan">To review</span><span class="mono" style="color:var(--muted)">92%</span></span>
+              <b>Impacted tooth</b>
+              <p>Lower left third molar, tipped forwards.</p>
+            </div>
+            <div class="next">
+              <span class="mono" style="color:var(--sage)">WHEN YOU'RE DONE</span>
+              <b>Download the PDF report or email it to the patient</b>
+              <p>The report includes your summary and the annotated x-ray.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="dash-foot">
+        <span>Dentists and practice admins sign in to SmartDent to see their patients and results.</span>
+        <span class="row"><a class="btn btn-navy btn-sm" href="{{ url_for('auth.login') }}" data-login>Doctor/Admin Login</a></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQS -->
+  <section class="faqs band" id="faqs">
+    <div class="wrap faq-grid">
+      <div class="faq-side">
+        <h2 class="h2">Good questions, plain answers.</h2>
+        <p class="lede">If something isn’t covered here, ask your dentist at your appointment. They can show you exactly what SmartDent highlighted.</p>
+      </div>
+      <div class="faq-list">
+        <details open>
+          <summary>Does SmartDent diagnose me?</summary>
+          <div class="ans">No. SmartDent highlights areas on an x-ray that may deserve a closer look. A qualified dentist reviews every finding, agrees or disagrees with it, and makes the diagnosis. AI output is advisory only.</div>
+        </details>
+        <details>
+          <summary>Which x-rays does it work with?</summary>
+          <div class="ans">Two-dimensional panoramic x-rays (also called OPGs), uploaded as JPEG or PNG. Periapical, bitewing and 3D (CBCT) scans are not supported yet.</div>
+        </details>
+        <details>
+          <summary>What does it look for?</summary>
+          <div class="ans">Four things: caries (decay), periapical lesions (infection or inflammation at a root tip), impacted teeth, and bone loss. Anything else is left to your dentist’s own reading of the image.</div>
+        </details>
+        <details>
+          <summary>What does the confidence score mean?</summary>
+          <div class="ans">It is how sure the model is that its box contains that finding. A high score is not a diagnosis, and a low score is not an all-clear. Your dentist decides.</div>
+        </details>
+        <details>
+          <summary>Who can see my images?</summary>
+          <div class="ans">The dentist responsible for your care. Practice admins manage dentist accounts and can see the patient list. Your dentist can email you your x-ray and report, or give you a copy.</div>
+        </details>
+        <details>
+          <summary>Will this mean more x-rays or more radiation?</summary>
+          <div class="ans">No. SmartDent reads the images your dentist would take anyway. Whether you need an x-ray, and how often, is still your dentist’s decision.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOOK -->
+  <section class="book band" id="book" style="border-radius:0;margin-top:0">
+    <div class="wrap">
+      <div class="book-card">
+        <div style="display:grid;gap:22px;align-content:start;position:relative">
+          <h2 class="h2">Book an x-ray review.</h2>
+          <p class="lede">Tell us what you need and a practice that uses SmartDent will contact you to arrange a time.</p>
+          <ol class="book-steps">
+            <li><span class="mono">01</span>Send your request below</li>
+            <li><span class="mono">02</span>The practice confirms your appointment</li>
+            <li><span class="mono">03</span>Your dentist takes and reviews your panoramic x-ray</li>
+            <li><span class="mono">04</span>You get the x-ray and a PDF report</li>
+          </ol>
+        </div>
+        <form class="bf" id="book-form" novalidate>
+          <div class="fld"><label for="bf-name">Full name</label><input id="bf-name" name="name" autocomplete="name" required></div>
+          <div class="fld"><label for="bf-email">Email</label><input id="bf-email" name="email" type="email" autocomplete="email" required></div>
+          <div class="fld"><label for="bf-type">Type of review</label>
+            <select id="bf-type" name="type"><option>New panoramic x-ray review</option><option>Follow-up on an earlier x-ray</option><option>Not sure, please advise</option></select></div>
+          <div class="fld"><label for="bf-area">Postcode or town</label><input id="bf-area" name="area" autocomplete="postal-code"></div>
+          <div class="fld full"><label for="bf-notes">Anything we should know? (optional)</label><textarea id="bf-notes" name="notes" placeholder="For example: a tooth that has been sensitive for a few weeks"></textarea></div>
+          <label class="check" for="bf-consent"><input id="bf-consent" type="checkbox" required> I understand SmartDent supports my dentist and does not replace their diagnosis.</label>
+          <button class="btn btn-navy" type="submit">Request my review <span class="arr"></span></button>
+          <div class="form-msg" id="form-msg" hidden role="status"></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="wrap">
+      <div class="foot-grid">
+        <div style="display:grid;gap:16px">
+          <a class="brand" href="#top">SmartDent</a>
+          <p>SmartDent is an AI tool that supports dentists reading panoramic x-rays. AI output is advisory only; the dentist makes the final diagnosis.</p>
+        </div>
+        <div><ul><li><a href="#overview">Overview</a></li><li><a href="#services">Services</a></li><li><a href="#doctors">Doctors</a></li><li><a href="#testimonials">Testimonials</a></li></ul></div>
+        <div><ul><li><a href="#dashboard">Dashboard</a></li><li><a href="#faqs">FAQs</a></li><li><a href="#book">Book an X-Ray Review</a></li><li><a class="btn btn-ghost btn-sm" href="{{ url_for('auth.login') }}" data-login>Doctor/Admin Login</a></li></ul></div>
+      </div>
+      <div class="legal"><span>© 2026 SmartDent</span><span>Placeholder doctors, testimonials and example patient data.</span></div>
+    </div>
+  </footer>
+</main>
+
+<div class="modal" id="login" hidden role="dialog" aria-modal="true" aria-labelledby="login-title">
+  <form class="modal-card" id="login-form" novalidate>
+    <button class="x" type="button" aria-label="Close" data-close>×</button>
+    <h2 id="login-title">Welcome back</h2>
+    <p style="margin:0;color:var(--muted)">Log in as a dentist or administrator.</p>
+    <div class="fld"><label for="lg-email">Email</label><input id="lg-email" type="email" autocomplete="username"></div>
+    <div class="fld"><label for="lg-pass">Password</label><input id="lg-pass" type="password" autocomplete="current-password"></div>
+    <button class="btn btn-navy" type="submit">Log in</button>
+    <div class="form-msg" id="login-msg" hidden role="status"></div>
+  </form>
+</div>
+
+<script>window.SMARTDENT_APP = true;  /* login links go to the real login page */</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- UI: nav, menu, scroll spy, modal, forms ---------- */
+var menuBtn = document.querySelector('.menu-btn'), menu = document.getElementById('mobile-menu');
+menuBtn.addEventListener('click', function(){ var open = menu.hidden; menu.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open)); });
+menu.addEventListener('click', function(e){ if(e.target.closest('a,button')){ menu.hidden = true; menuBtn.setAttribute('aria-expanded','false'); } });
+
+var navLinks = Array.prototype.slice.call(document.querySelectorAll('.links a'));
+var spyIds = ['overview','services','doctors','testimonials','dashboard','faqs'];
+function spy(){
+  var y = innerHeight * 0.35, cur = null;
+  spyIds.forEach(function(id){ var el = document.getElementById(id); if(el && el.getBoundingClientRect().top < y) cur = id; });
+  navLinks.forEach(function(a){ a.classList.toggle('on', a.getAttribute('href') === '#' + cur); });
+}
+
+var modal = document.getElementById('login'), loginMsg = document.getElementById('login-msg');
+// Inside the SmartDent app the login links go to the real login page.
+// On the standalone preview there is no server, so they open a sample sign-in card instead.
+if(!window.SMARTDENT_APP){
+  document.querySelectorAll('[data-login]').forEach(function(b){
+    b.addEventListener('click', function(e){ e.preventDefault(); loginMsg.hidden = true; modal.hidden = false; document.getElementById('lg-email').focus(); });
+  });
+}
+function closeModal(){ modal.hidden = true; }
+modal.addEventListener('click', function(e){ if(e.target === modal || e.target.closest('[data-close]')) closeModal(); });
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !modal.hidden) closeModal(); });
+document.getElementById('login-form').addEventListener('submit', function(e){
+  e.preventDefault(); loginMsg.hidden = false;
+  loginMsg.textContent = 'This is the website preview. Open the SmartDent app to log in.';
+});
+
+var bf = document.getElementById('book-form'), fm = document.getElementById('form-msg');
+bf.addEventListener('submit', function(e){
+  e.preventDefault();
+  var name = document.getElementById('bf-name'), email = document.getElementById('bf-email'), c = document.getElementById('bf-consent');
+  fm.hidden = false;
+  if(!name.value.trim()){ fm.textContent = 'Add your name so the practice knows who to contact.'; name.focus(); return; }
+  if(!email.validity.valid || !email.value){ fm.textContent = 'Add an email address we can reply to, like name@example.com.'; email.focus(); return; }
+  if(!c.checked){ fm.textContent = 'Tick the box to confirm you understand how SmartDent is used.'; c.focus(); return; }
+  fm.textContent = 'Thanks, ' + name.value.trim().split(' ')[0] + '. Online booking isn’t connected yet, so nothing was sent. Please contact your dental practice to book.';
+});
+
+/* ---------- Procedural panoramic radiograph (OPG) ---------- */
+var XW = 1600, XH = 800, CX = 800;
+var BOXES = {};   // filled while drawing: caries, apical, impacted (canvas pixels)
+var UP_W = [58,52,60,63,63,86,84,78], LO_W = [46,50,58,62,64,92,88,82];
+var CHS = [92,88,96,82,82,78,76,74], RLS = [140,130,170,140,140,120,115,105];
+
+function toothPath(c, w, ch, rl, t){
+  var h = w/2; c.beginPath(); c.moveTo(-h*.80, ch*.10);
+  if(t==='m'){
+    c.quadraticCurveTo(-h*.62,-ch*.08,-h*.40,0); c.quadraticCurveTo(-h*.15,ch*.16,0,ch*.10);
+    c.quadraticCurveTo(h*.15,ch*.16,h*.40,0); c.quadraticCurveTo(h*.62,-ch*.08,h*.80,ch*.10);
+  } else { c.quadraticCurveTo(-h*.4,-ch*.12,0,-ch*.04); c.quadraticCurveTo(h*.4,-ch*.12,h*.80,ch*.10); }
+  c.bezierCurveTo(h*1.04,ch*.25,h*1.0,ch*.62,h*.74,ch);
+  if(t==='m'){
+    c.bezierCurveTo(h*.78,ch+rl*.5,h*.62,ch+rl*.95,h*.50,ch+rl); c.quadraticCurveTo(h*.38,ch+rl*1.02,h*.30,ch+rl*.9);
+    c.bezierCurveTo(h*.25,ch+rl*.55,h*.12,ch+rl*.32,0,ch+rl*.30); c.bezierCurveTo(-h*.12,ch+rl*.32,-h*.25,ch+rl*.55,-h*.30,ch+rl*.9);
+    c.quadraticCurveTo(-h*.38,ch+rl*1.02,-h*.50,ch+rl); c.bezierCurveTo(-h*.62,ch+rl*.95,-h*.78,ch+rl*.5,-h*.74,ch);
+  } else {
+    c.bezierCurveTo(h*.70,ch+rl*.5,h*.30,ch+rl*.95,h*.08,ch+rl); c.quadraticCurveTo(0,ch+rl*1.03,-h*.08,ch+rl);
+    c.bezierCurveTo(-h*.30,ch+rl*.95,-h*.70,ch+rl*.5,-h*.74,ch);
+  }
+  c.bezierCurveTo(-h*1.0,ch*.62,-h*1.04,ch*.25,-h*.80,ch*.10); c.closePath();
+}
+// Draws one tooth with its occlusal edge at (x,y), roots pointing along `dir` (-1 up, 1 down).
+// Returns a function that maps a point in the tooth's own coordinates to canvas pixels.
+function drawTooth(c, x, y, ang, w, ch, rl, t, dir, extra){
+  var h = w/2;
+  c.save(); c.translate(x, y); c.rotate(ang); c.scale(1, dir);
+  var m = c.getTransform();
+  toothPath(c, w, ch, rl, t); c.fillStyle = 'rgb(176,180,184)'; c.fill();
+  c.save(); c.clip();
+  var g = c.createLinearGradient(-h,0,h,0); g.addColorStop(0,'rgba(0,0,0,.18)'); g.addColorStop(.5,'rgba(255,255,255,.06)'); g.addColorStop(1,'rgba(0,0,0,.18)');
+  c.fillStyle = g; c.fillRect(-h*1.2,-20,w*1.2,ch+rl+40);
+  c.save(); c.beginPath(); c.rect(-h*1.2,-40,w*1.2,ch*.9+40); c.clip();
+  toothPath(c, w, ch, rl, t); c.lineWidth = w*.13; c.strokeStyle = 'rgb(228,231,234)'; c.stroke(); c.restore();
+  c.fillStyle = 'rgb(96,100,106)';
+  c.beginPath(); c.moveTo(-h*.22,ch*.74);
+  c.quadraticCurveTo(-h*.25,ch*.56,-h*.17,ch*.58); c.quadraticCurveTo(0,ch*.68,h*.17,ch*.58);
+  c.quadraticCurveTo(h*.25,ch*.56,h*.22,ch*.74); c.quadraticCurveTo(h*.20,ch*1.04,0,ch*1.06);
+  c.quadraticCurveTo(-h*.20,ch*1.04,-h*.22,ch*.74); c.fill();
+  c.strokeStyle = 'rgb(96,100,106)'; c.lineCap = 'round'; c.lineWidth = Math.max(3, w*.04);
+  if(t==='m'){ [-1,1].forEach(function(s){ c.beginPath(); c.moveTo(s*h*.18,ch*1.02); c.quadraticCurveTo(s*h*.46,ch+rl*.4,s*h*.43,ch+rl*.96); c.stroke(); }); }
+  else { c.beginPath(); c.moveTo(0,ch*1.05); c.quadraticCurveTo(h*.04,ch+rl*.5,0,ch+rl*.97); c.stroke(); }
+  if(extra) extra(c, h, ch, rl);
+  c.restore();
+  toothPath(c, w, ch, rl, t); c.lineWidth = 2.5; c.strokeStyle = 'rgba(40,44,50,.55)'; c.stroke();
+  c.restore();
+  return function(lx, ly){ return {x: m.a*lx + m.c*ly + m.e, y: m.b*lx + m.d*ly + m.f}; };
+}
+function rr(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+function boxAround(pts, pad){
+  var xs = pts.map(function(p){return p.x;}), ys = pts.map(function(p){return p.y;});
+  var x0 = Math.min.apply(null,xs)-pad, y0 = Math.min.apply(null,ys)-pad;
+  return {x:x0, y:y0, w:Math.max.apply(null,xs)+pad-x0, h:Math.max.apply(null,ys)+pad-y0};
+}
+
+function makeXray(){
+  var base = document.createElement('canvas'); base.width = XW; base.height = XH;
+  var c = base.getContext('2d'), K = 0.00012;
+  var upOcc = function(x){ return 382 - K*(x-CX)*(x-CX); };
+  var loOcc = function(x){ return 404 - K*(x-CX)*(x-CX); };
+  c.fillStyle = 'rgb(30,33,38)'; c.fillRect(0,0,XW,XH);
+  // maxilla
+  c.fillStyle = 'rgb(98,102,108)';
+  c.beginPath(); c.moveTo(150,120); c.quadraticCurveTo(CX,40,1450,120); c.lineTo(1450,upOcc(1450)-30);
+  for(var x=1450;x>=150;x-=25){ c.lineTo(x, upOcc(x)-22); } c.closePath(); c.fill();
+  // mandible body and rami
+  c.fillStyle = 'rgb(112,116,122)';
+  c.beginPath(); c.moveTo(40,90); c.lineTo(185,90); c.lineTo(205,loOcc(205)+20);
+  for(x=205;x<=1395;x+=25){ c.lineTo(x, loOcc(x)+22); }
+  c.lineTo(1415,90); c.lineTo(1560,90); c.quadraticCurveTo(1585,560,1480,650);
+  c.quadraticCurveTo(CX,860,120,650); c.quadraticCurveTo(15,560,40,90); c.closePath(); c.fill();
+  // sinuses, nasal cavity, palate
+  c.fillStyle = 'rgba(40,43,48,.9)';
+  [[470,190,175,80],[1130,190,175,80]].forEach(function(e){ c.beginPath(); c.ellipse(e[0],e[1],e[2],e[3],0,0,6.283); c.fill(); });
+  c.beginPath(); c.ellipse(CX,140,120,90,0,0,6.283); c.fill();
+  c.strokeStyle = 'rgba(150,154,160,.8)'; c.lineWidth = 8; c.beginPath(); c.moveTo(CX,60); c.lineTo(CX,225); c.stroke();
+  c.strokeStyle = 'rgba(200,204,208,.55)'; c.lineWidth = 14; c.beginPath(); c.moveTo(430,262); c.quadraticCurveTo(CX,232,1170,262); c.stroke();
+  // mandibular canals
+  c.strokeStyle = 'rgba(60,64,70,.7)'; c.lineWidth = 12;
+  c.beginPath(); c.moveTo(110,300); c.quadraticCurveTo(300,700,700,690); c.stroke();
+  c.beginPath(); c.moveTo(1490,300); c.quadraticCurveTo(1300,700,900,690); c.stroke();
+  // trabecular speckle
+  var seed = 11; function rnd(){ seed = (seed*16807) % 2147483647; return (seed-1)/2147483646; }
+  for(var i=0;i<14000;i++){
+    var px = rnd()*XW, py = rnd()*XH;
+    c.fillStyle = rnd()<.55 ? 'rgba(20,22,26,.08)' : 'rgba(210,214,218,.06)';
+    c.beginPath(); c.ellipse(px,py,2+rnd()*6,1.5+rnd()*4,rnd()*3,0,6.283); c.fill();
+  }
+  // teeth, from the midline outwards on both sides
+  [-1,1].forEach(function(side){
+    var ux = CX + side*2, lx = CX + side*2;
+    for(var k=0;k<8;k++){
+      var t = k>=5 ? 'm' : 'pm';
+      // upper tooth
+      var uw = UP_W[k], ucx = ux + side*uw/2, uy = upOcc(ucx), ua = Math.atan(2*K*(ucx-CX))*.9;
+      var caries = (side===-1 && k===5);
+      var map = drawTooth(c, ucx, uy, ua, uw, CHS[k], RLS[k], t, -1, caries ? function(c,h,ch){
+        var g = c.createRadialGradient(-h*.86,ch*.30,2,-h*.86,ch*.30,h*.3);
+        g.addColorStop(0,'rgba(26,28,32,.9)'); g.addColorStop(.6,'rgba(40,42,46,.55)'); g.addColorStop(1,'rgba(40,42,46,0)');
+        c.fillStyle = g; c.beginPath(); c.moveTo(-h*1.04,ch*.12); c.lineTo(-h*.62,ch*.32); c.lineTo(-h*1.04,ch*.54); c.closePath(); c.fill();
+      } : null);
+      if(caries){ BOXES.caries = boxAround([map(-uw*.55,-6), map(-uw*.2,CHS[k]*.65)], 18); }
+      ux += side*(uw+4);
+      // lower tooth
+      var lw = LO_W[k], lcx = lx + side*lw/2, ly = loOcc(lcx), la = -Math.atan(2*K*(lcx-CX))*.9;
+      if(side===1 && k===7){
+        // impacted third molar: sits low in the bone, tipped forwards
+        var mi = drawTooth(c, lcx+6, ly+70, -0.9, lw, CHS[k], RLS[k]*.8, 'm', 1, null);
+        BOXES.impacted = boxAround([mi(-lw*.6,-10), mi(lw*.6,-10), mi(-lw*.5,CHS[k]+RLS[k]*.8), mi(lw*.5,CHS[k]+RLS[k]*.8)], 14);
+      } else {
+        var ml = drawTooth(c, lcx, ly, la, lw, CHS[k], RLS[k], t, 1, null);
+        if(side===-1 && k===4){
+          var apex = ml(0, CHS[k]+RLS[k]);
+          var g2 = c.createRadialGradient(apex.x,apex.y+4,4,apex.x,apex.y+4,34);
+          g2.addColorStop(0,'rgba(28,30,34,.85)'); g2.addColorStop(.7,'rgba(40,42,46,.5)'); g2.addColorStop(1,'rgba(40,42,46,0)');
+          c.fillStyle = g2; c.beginPath(); c.arc(apex.x,apex.y+4,34,0,6.283); c.fill();
+          BOXES.apical = {x:apex.x-48, y:apex.y-44, w:96, h:96};
+        }
+      }
+      lx += side*(lw+4);
+    }
+  });
+  var out = document.createElement('canvas'); out.width = XW; out.height = XH;
+  var o = out.getContext('2d');
+  o.save(); rr(o,0,0,XW,XH,48); o.clip();
+  if('filter' in o){ o.filter = 'blur(1.5px)'; }
+  o.drawImage(base,0,0); o.filter = 'none';
+  var img = o.getImageData(0,0,XW,XH), d = img.data, cx = XW/2, cy = XH/2, maxd = Math.sqrt(cx*cx+cy*cy);
+  for(var p=0, q=0; p<d.length; p+=4, q++){
+    if(d[p+3]===0) continue;
+    var dx = (q % XW)-cx, dy = ((q/XW)|0)-cy;
+    var v = 1 - Math.pow(Math.sqrt(dx*dx+dy*dy)/maxd, 2.4)*.5, n = (Math.random()-.5)*14;
+    d[p] = Math.max(0,Math.min(255,d[p]*v+n-4)); d[p+1] = Math.max(0,Math.min(255,d[p+1]*v+n)); d[p+2] = Math.max(0,Math.min(255,d[p+2]*v+n+6));
+  }
+  o.putImageData(img,0,0);
+  o.font = '500 28px "IBM Plex Mono", monospace'; o.fillStyle = 'rgba(255,255,255,.7)';
+  o.fillText('R', 52, 70); o.fillText('L', XW-72, 70);
+  o.restore();
+  return out;
+}
+
+var FINDINGS = [
+  {key:'caries', flag:'Possible caries · 81%', done:'Caries · agreed'},
+  {key:'apical', flag:'Periapical lesion · 57%', done:'Periapical lesion · agreed'},
+  {key:'impacted', flag:'Impacted tooth · 92%', done:'Impacted tooth · agreed'}
+];
+function makeOverlay(mode){
+  var cv = document.createElement('canvas'); cv.width = XW; cv.height = XH;
+  var c = cv.getContext('2d');
+  var col = mode === 'reviewed' ? '#8FD6BC' : '#62D9FF';
+  function tag(x,y,text){
+    c.font = '600 34px "Average Sans", "Segoe UI", sans-serif';
+    var tw = c.measureText(text).width + 40;
+    x = Math.max(24, Math.min(x, XW - tw - 24));
+    rr(c,x,y-52,tw,48,24); c.fillStyle = col; c.fill();
+    c.fillStyle = '#071B3A'; c.fillText(text, x+20, y-17);
+  }
+  FINDINGS.forEach(function(f){
+    var b = BOXES[f.key]; if(!b) return;
+    c.shadowColor = col; c.shadowBlur = 24; c.lineWidth = 5; c.strokeStyle = col;
+    rr(c,b.x,b.y,b.w,b.h,14); c.stroke(); c.shadowBlur = 0;
+    var above = b.y > 80;
+    tag(b.x, above ? b.y-10 : b.y+b.h+62, mode==='reviewed' ? f.done : f.flag);
+  });
+  return cv;
+}
+
+/* ---------- 3D scene ---------- */
+var stages = { hero: document.getElementById('stage-hero'), ov: document.getElementById('stage-ov') };
+var steps = Array.prototype.slice.call(document.querySelectorAll('.step'));
+var activeStep = 0;
+function updateSteps(){
+  var mid = innerHeight * .55, best = 0, bd = 1e9;
+  steps.forEach(function(s,i){ var r = s.getBoundingClientRect(); var d = Math.abs((r.top+r.height/2) - mid); if(d < bd){ bd = d; best = i; } });
+  if(best !== activeStep){ activeStep = best; steps.forEach(function(s,i){ s.classList.toggle('active', i===best); }); }
+}
+
+function visFrac(el){
+  var r = el.getBoundingClientRect(); if(r.height <= 0) return 0;
+  var top = Math.max(r.top, 0), bot = Math.min(r.bottom, innerHeight);
+  return Math.max(0, bot-top) / Math.min(r.height, innerHeight);
+}
+
+function fallback(xray){
+  document.getElementById('scene').style.display = 'none';
+  var comp = document.createElement('canvas'); comp.width = XW; comp.height = XH;
+  var cc = comp.getContext('2d'); cc.drawImage(xray,0,0); cc.drawImage(makeOverlay('flag'),0,0);
+  var url = comp.toDataURL('image/jpeg', .9);
+  [stages.hero, stages.ov].forEach(function(s){
+    var f = document.createElement('div'); f.className = 'fallback-film';
+    var im = new Image(); im.src = url; im.alt = 'Example bitewing x-ray'; f.appendChild(im); s.appendChild(f);
+  });
+}
+
+function start(){
+  var xray = makeXray();
+  var flagged = document.createElement('canvas'); flagged.width = XW; flagged.height = XH;
+  var fc = flagged.getContext('2d'); fc.drawImage(xray,0,0); fc.drawImage(makeOverlay('flag'),0,0);
+  var dataUrl = flagged.toDataURL('image/jpeg', .9);
+  document.getElementById('film-img').src = dataUrl;
+  var visitLabel = document.getElementById('visit-label');
+  var labels = ['Uploaded 14 Oct 2026','Uploaded 2 Mar 2026','Uploaded 18 Sep 2025'];
+  document.querySelectorAll('.visit').forEach(function(v){
+    v.addEventListener('click', function(){
+      document.querySelectorAll('.visit').forEach(function(o){ o.classList.toggle('sel', o===v); });
+      visitLabel.textContent = labels[+v.dataset.visit];
+    });
+  });
+
+  if(typeof THREE === 'undefined'){ fallback(xray); return; }
+  var canvas = document.getElementById('scene'), renderer;
+  try { renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true, alpha:true}); }
+  catch(err){ fallback(xray); return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.setClearColor(0x000000, 0);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(35, 1, .1, 100); camera.position.set(0,0,10);
+  var FOVR = THREE.MathUtils.degToRad(35/2);
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xE8E4FF, .45));
+  var key = new THREE.DirectionalLight(0xffffff, .9); key.position.set(-3,5,6); scene.add(key);
+  var rim = new THREE.DirectionalLight(0xCFEFF5, .6); rim.position.set(4,-2,3); scene.add(rim);
+
+  var root = new THREE.Group(); scene.add(root);
+  var panel = new THREE.Group(); root.add(panel);
+
+  // rounded lightbox frame
+  function roundedShape(w,h,r){ var s = new THREE.Shape(), x=-w/2, y=-h/2;
+    s.moveTo(x+r,y); s.lineTo(x+w-r,y); s.quadraticCurveTo(x+w,y,x+w,y+r); s.lineTo(x+w,y+h-r); s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    s.lineTo(x+r,y+h); s.quadraticCurveTo(x,y+h,x,y+h-r); s.lineTo(x,y+r); s.quadraticCurveTo(x,y,x+r,y); return s; }
+  var frameGeo = new THREE.ExtrudeGeometry(roundedShape(3.92,2.12,.24), {depth:.14, bevelEnabled:true, bevelThickness:.05, bevelSize:.05, bevelSegments:6, curveSegments:24});
+  frameGeo.translate(0,0,-.07);
+  var frameMat = new THREE.MeshPhysicalMaterial({color:0x030C1E, roughness:.38, metalness:.05, clearcoat:.5, clearcoatRoughness:.3});
+  panel.add(new THREE.Mesh(frameGeo, frameMat));
+
+  var tex = new THREE.CanvasTexture(xray); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
+  var xrayMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.6,1.8), new THREE.MeshBasicMaterial({map:tex, transparent:true}));
+  xrayMesh.position.z = .125; panel.add(xrayMesh);
+
+  function overlayMesh(mode, z){
+    var t = new THREE.CanvasTexture(makeOverlay(mode)); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8;
+    var m = new THREE.Mesh(new THREE.PlaneGeometry(3.6,1.8), new THREE.MeshBasicMaterial({map:t, transparent:true, opacity:0, depthWrite:false}));
+    m.position.z = z; panel.add(m); return m;
+  }
+  var ovCyan = overlayMesh('flag', .13), ovSage = overlayMesh('reviewed', .132);
+
+  // scan line + glow
+  var gcv = document.createElement('canvas'); gcv.width = 128; gcv.height = 4;
+  var gc = gcv.getContext('2d'), gg = gc.createLinearGradient(0,0,128,0);
+  gg.addColorStop(0,'rgba(98,217,255,0)'); gg.addColorStop(.5,'rgba(98,217,255,1)'); gg.addColorStop(1,'rgba(98,217,255,0)');
+  gc.fillStyle = gg; gc.fillRect(0,0,128,4);
+  var scan = new THREE.Group(); scan.position.z = .136; panel.add(scan);
+  var glowMat = new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(gcv), transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false});
+  scan.add(new THREE.Mesh(new THREE.PlaneGeometry(.55,1.8), glowMat));
+  var lineMat = new THREE.MeshBasicMaterial({color:0xBFF1FF, transparent:true, opacity:0, depthWrite:false});
+  scan.add(new THREE.Mesh(new THREE.PlaneGeometry(.018,1.8), lineMat));
+  var scanLight = new THREE.PointLight(0x62D9FF, 0, 3); scanLight.position.z = .6; scan.add(scanLight);
+
+  // orbit rings
+  var ringMat = new THREE.MeshBasicMaterial({color:0xC9C1FF, transparent:true, opacity:.7});
+  var ring1 = new THREE.Mesh(new THREE.TorusGeometry(2.55,.012,12,200), ringMat); ring1.position.z = -.7; ring1.rotation.x = .35; root.add(ring1);
+  var ring2 = new THREE.Mesh(new THREE.TorusGeometry(2.2,.01,12,200), new THREE.MeshBasicMaterial({color:0x8FD6BC, transparent:true, opacity:.6})); ring2.position.z = -.5; ring2.rotation.set(-.4,.5,0); root.add(ring2);
+
+  // pearl spheres
+  var sGeo = new THREE.SphereGeometry(1, 48, 32);
+  var orbs = [
+    {p:[-2.2,1.05,.6], r:.30, c:0xDDF7EF},
+    {p:[2.25,-.95,.8], r:.40, c:0xCFEFF5},
+    {p:[2.05,1.2,-.6], r:.21, c:0xE8E4FF},
+    {p:[-2.35,-.95,-.4], r:.17, c:0xFFFFFF},
+    {p:[.62,-1.35,1.1], r:.11, c:0x62D9FF, e:.6}
+  ].map(function(o,i){
+    var m = new THREE.Mesh(sGeo, new THREE.MeshPhysicalMaterial({color:o.c, roughness:.22, metalness:0, clearcoat:1, clearcoatRoughness:.1, sheen:0, emissive:o.e?o.c:0x000000, emissiveIntensity:o.e||0}));
+    m.scale.setScalar(o.r); m.position.set(o.p[0],o.p[1],o.p[2]); m.userData = {base:o.p, ph:i*1.7}; root.add(m); return m;
+  });
+
+  var W = 0, H = 0;
+  function resize(){ W = innerWidth; H = innerHeight; renderer.setSize(W,H,false); camera.aspect = W/H; camera.updateProjectionMatrix(); needs = true; }
+  var needs = true;
+  addEventListener('resize', resize); resize();
+
+  var mouse = {x:0,y:0}, mt = {x:0,y:0};
+  addEventListener('pointermove', function(e){ mt.x = e.clientX/W*2-1; mt.y = e.clientY/H*2-1; }, {passive:true});
+
+  function anchor(el){
+    var r = el.getBoundingClientRect(), wpp = (2*camera.position.z*Math.tan(FOVR))/H;
+    return { x:(r.left+r.width/2 - W/2)*wpp, y:-(r.top+r.height/2 - H/2)*wpp, s:Math.min(r.width*wpp/5.0, r.height*wpp/2.9) };
+  }
+  var mix = 0, wasVisible = true, clock = new THREE.Clock(), t0 = 0;
+  var ovC = 0, ovS = 0, scanA = 0;
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function ease(t){ return t*t*(3-2*t); }
+
+  function frame(){
+    requestAnimationFrame(frame);
+    if(document.hidden) return;
+    var dt = Math.min(clock.getDelta(), .05), t = (t0 += dt);
+    spy(); updateSteps();
+    var vh = visFrac(stages.hero), vo = visFrac(stages.ov);
+    var visible = Math.max(vh, vo) > .01;
+    if(!visible){ if(wasVisible){ renderer.clear(); wasVisible = false; } return; }
+    wasVisible = true;
+    var target = vo > vh ? 1 : 0;
+    mix = reduce ? target : mix + (target - mix) * Math.min(1, dt*4);
+    var m = ease(mix), a = anchor(stages.hero), b = anchor(stages.ov);
+    mouse.x += (mt.x - mouse.x) * .05; mouse.y += (mt.y - mouse.y) * .05;
+    var bob = reduce ? 0 : Math.sin(t*.8)*.06;
+    root.position.set(lerp(a.x,b.x,m), lerp(a.y,b.y,m) + bob*lerp(a.s,b.s,m), 0);
+    root.scale.setScalar(lerp(a.s,b.s,m));
+    panel.rotation.set(lerp(.12,.03,m) + mouse.y*.05, lerp(-.42,-.1,m) + mouse.x*.10, lerp(.03,0,m));
+    ring1.rotation.z = reduce ? 0 : t*.06; ring2.rotation.z = reduce ? 0 : -t*.05;
+    orbs.forEach(function(o){ var d = o.userData; o.position.y = d.base[1] + (reduce?0:Math.sin(t*.9+d.ph)*.08); o.position.x = d.base[0] + (reduce?0:Math.cos(t*.7+d.ph)*.04); });
+
+    // diagnostic state
+    var step = m > .5 ? activeStep : -1;
+    var wantC = step === -1 ? 1 : (step === 2 ? 1 : 0);
+    var wantS = step === 3 ? 1 : 0;
+    var sweep, wantScan;
+    if(step === -1){ var cyc = (t % 6)/6; sweep = Math.min(1, cyc/0.45); wantScan = cyc < .5 ? 1 : 0; }
+    else if(step === 1){ sweep = (t % 2.6)/2.6; wantScan = 1; }
+    else { sweep = .5; wantScan = 0; }
+    if(reduce){ wantScan = 0; }
+    var k = Math.min(1, dt*5);
+    ovC += (wantC - ovC)*k; ovS += (wantS - ovS)*k; scanA += (wantScan - scanA)*Math.min(1,dt*8);
+    ovCyan.material.opacity = ovC; ovSage.material.opacity = ovS;
+    scan.position.x = -1.78 + sweep*3.56;
+    var edge = Math.sin(Math.PI*Math.min(1,Math.max(0,sweep)));
+    glowMat.opacity = scanA*.55*edge; lineMat.opacity = scanA*.95*edge; scanLight.intensity = scanA*1.6*edge;
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(frame);
+}
+
+function boot(){ try { start(); } catch(e){ console.error(e); } }
+var fontsReady = document.fonts && document.fonts.load ? Promise.all([document.fonts.load('400 34px "Average Sans"'), document.fonts.load('500 26px "IBM Plex Mono"')]) : Promise.resolve();
+Promise.race([fontsReady, new Promise(function(r){ setTimeout(r, 1500); })]).then(boot, boot);
+addEventListener('scroll', function(){ spy(); }, {passive:true});
+spy();
+})();
+</script>
+</body></html>

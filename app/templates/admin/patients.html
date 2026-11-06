@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import search %}
+{% block title %}All patients{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>All patients</h1>
+    <p class="lead">Every patient in SmartDent and the doctor they belong to. Only their doctor can open their X-rays.</p>
+  </div>
+</div>
+{% if patients %}
+<div class="table-tools">
+  <span class="muted small">{{ patients|length }} patient{{ "s" if patients|length != 1 }}. Click a column title to sort.</span>
+  {{ search("all-patients", "Search by patient, doctor, phone or email") }}
+</div>
+<div class="table-wrap">
+<table id="all-patients" class="sortable stack">
+  <thead><tr>
+    <th data-sort="text">Name</th><th data-sort="number" class="num">Age</th>
+    <th data-sort="text">Phone</th><th data-sort="text">Doctor</th><th data-sort="number" class="num">X-rays</th><th></th>
+  </tr></thead>
+  <tbody>
+  {% for p in patients %}
+    <tr>
+      <td data-value="{{ p.name }}"><span class="person"><span class="avatar">{{ p.name|initials }}</span>
+          <span>{{ p.name }}<small>{{ p.email or "No email" }}</small></span></span></td>
+      <td class="num" data-label="Age">{{ p.age if p.age is not none else "" }}</td>
+      <td data-label="Phone">{{ p.phone or "" }}</td>
+      <td data-label="Doctor" data-value="{{ p.dentist.name }}"><span class="person"><span class="avatar lavender">{{ p.dentist.name|initials }}</span><span>{{ p.dentist.name }}</span></span></td>
+      <td class="num" data-label="X-rays">{{ p.xrays|length }}</td>
+      <td class="actions"><a class="button small" href="{{ url_for('admin.transfer_patient_view', patient_id=p.id) }}">Transfer</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p id="all-patients-none" class="empty" hidden>No patient matches your search.</p>
+{% else %}
+<div class="empty">
+  <strong>No patients yet</strong>
+  <p>Doctors add their patients from their own dashboard.</p>
+</div>
+{% endif %}
+{% endblock %}

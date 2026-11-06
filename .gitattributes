@@ -1,0 +1,3 @@
+# Mac and Linux start scripts break with Windows line endings
+*.sh text eol=lf
+*.command text eol=lf

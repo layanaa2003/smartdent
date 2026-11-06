@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<section class="login-page">
+  <div class="login-brand">
+    <div class="logo-box">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="SmartDent, a dental X-ray diagnostic assistant">
+    </div>
+    <h2>AI support for panoramic X-rays, dentist-led.</h2>
+    <p>SmartDent highlights possible findings so dentists can review them alongside their own judgment.</p>
+    <ul>
+      <li>Caries, periapical lesions, impacted teeth and bone loss</li>
+      <li>Boxes and confidence scores for every finding</li>
+      <li>Patient history and PDF reports in one place</li>
+    </ul>
+  </div>
+
+  <div class="login-form">
+    <h1>Welcome back</h1>
+    <p class="muted">Log in as a dentist or administrator.</p>
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      {{ field(form.email, autocomplete="username", autofocus=true) }}
+      {{ field(form.password, autocomplete="current-password") }}
+      {{ form.submit(class="button primary wide") }}
+    </form>
+    <a class="back" href="{{ url_for('index') }}">&larr; Back to the SmartDent website</a>
+  </div>
+</section>
+{% endblock %}

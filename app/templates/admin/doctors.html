@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import button_form, search %}
+{% block title %}Doctors{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Doctors</h1>
+    <p class="lead">Everyone who can log in to SmartDent, and the patients each one looks after.</p>
+  </div>
+  <a class="button primary" href="{{ url_for('admin.add_doctor') }}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg>Add doctor</a>
+</div>
+
+{% include "_stats.html" %}
+
+{% if doctors %}
+<div class="table-tools">
+  <h2>Team</h2>
+  {{ search("doctor-table", "Search by name, email or phone") }}
+</div>
+<div class="table-wrap">
+<table id="doctor-table" class="sortable stack">
+  <thead><tr><th data-sort="text">Name</th><th data-sort="text">Phone</th><th data-sort="number" class="num">Patients</th><th></th></tr></thead>
+  <tbody>
+  {% for d in doctors %}
+    <tr>
+      <td data-value="{{ d.name }}"><span class="person"><span class="avatar">{{ d.name|initials }}</span>
+          <span>{{ d.name }}<small>{{ d.email }}</small></span></span></td>
+      <td data-label="Phone">{{ d.phone or "" }}</td>
+      <td class="num" data-label="Patients">{{ d.patients|length }}</td>
+      <td class="actions">
+        <a class="button small" href="{{ url_for('admin.edit_doctor', doctor_id=d.id) }}">Edit</a>
+        {% if d.patients %}
+          <a class="button small" href="{{ url_for('admin.reassign_patients', doctor_id=d.id) }}">Transfer patients</a>
+        {% endif %}
+        {{ button_form(url_for('admin.delete_doctor', doctor_id=d.id), "Remove", confirm,
+                       css="button small danger", ask="Remove " ~ d.name ~ "?") }}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p id="doctor-table-none" class="empty" hidden>No doctor matches your search.</p>
+{% else %}
+<div class="empty">
+  <strong>No doctors yet</strong>
+  <p>Add the first dentist so they can log in, add patients and upload X-rays.</p>
+  <a class="button primary" href="{{ url_for('admin.add_doctor') }}">Add doctor</a>
+</div>
+{% endif %}
+{% endblock %}
