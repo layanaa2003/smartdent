@@ -15,7 +15,10 @@ To run it from this computer instead:
     .venv\\Scripts\\python deploy_hf.py --private    (make it private again)
 
 It uploads the same files as the TM471 zip (see build_zip.py, which includes the Dockerfile), so the
-dataset, database, uploads and .env never leave this computer. The online copy gets its own demo
+dataset, database, uploads and .env never leave this computer. The one exception is the model:
+models/best.pt goes to a PRIVATE model repository (<user>/smartdent-model) instead of the Space,
+so it cannot be downloaded even if the Space is public; the Space fetches it at start-up
+(scripts/fetch_model.py) with its HF_TOKEN secret, a read-only token you add once in the Space settings. The online copy gets its own demo
 passwords (not the ones in README.md); a local copy is kept, with its secret key, in instance/hf_demo_logins.txt.
 """
 import os
@@ -30,6 +33,8 @@ from huggingface_hub import HfApi
 from build_zip import ROOT, files_to_pack
 
 SPACE_NAME = "smartdent"
+MODEL_REPO_NAME = "smartdent-model"
+MODEL_FILE = "models/best.pt"
 SECRETS_FILE = ROOT / "instance" / "hf_demo_logins.txt"
 SECRET_NAMES = {"DEMO_ADMIN_PASSWORD": "DEMO_ADMIN_PASSWORD", "DEMO_DOCTOR_PASSWORD": "DEMO_DOCTOR_PASSWORD",
                 "SECRET_KEY": "HF_SECRET_KEY"}      # name on the Space -> name on GitHub
@@ -73,6 +78,8 @@ def space_secrets():
 def stage_files(folder):
     """Copy the files to upload into a temporary folder, with the Space's own README."""
     for src, rel in files_to_pack():
+        if rel.as_posix() == MODEL_FILE:              # the model goes to the private model repository
+            continue
         dst = folder / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, dst)
@@ -88,6 +95,16 @@ def main():
     for flag, private in (("--public", False), ("--private", True)):   # otherwise keep what it is
         if flag in sys.argv[1:]:
             api.update_repo_settings(repo_id, repo_type="space", private=private)
+
+    # The model: in a private model repository, which the Space reads with the HF_TOKEN secret.
+    model_repo = f"{user}/{MODEL_REPO_NAME}"
+    api.create_repo(model_repo, repo_type="model", private=True, exist_ok=True)
+    api.update_repo_settings(model_repo, repo_type="model", private=True)
+    api.upload_file(path_or_fileobj=str(ROOT / MODEL_FILE), path_in_repo="best.pt", repo_id=model_repo,
+                    commit_message="Update SmartDent model")
+    api.add_space_variable(repo_id, "MODEL_REPO", model_repo)
+    # The Space reads it with its secret HF_TOKEN: a READ-only token you add once yourself under the
+    # Space's Settings > Variables and secrets (deliberately not your write token).
 
     values = space_secrets()
     for key, value in values.items():                # Space secrets stay hidden, even on a public Space

@@ -54,6 +54,11 @@
 {% endif %}
 
   <main>
+    {% if config.HOSTED and current_user.is_authenticated %}
+      {# Online test copy: testers must not enter real patient data. #}
+      <p class="note warn test-notice" role="note"><span><b>Online test version.</b> Use anonymised X-rays only
+        (no names or dates on the image) and made-up patient details. Do not enter real patient information.</span></p>
+    {% endif %}
     {% for category, message in get_flashed_messages(with_categories=true) %}
       <div class="flash {{ category }}" role="status">{{ message }}</div>
     {% endfor %}

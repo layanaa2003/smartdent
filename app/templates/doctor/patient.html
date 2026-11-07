@@ -71,7 +71,11 @@
       </label>
       {% for error in form.image.errors %}<small class="error">{{ error }}</small>{% endfor %}
       {{ form.submit(class="button primary wide") }}
+      {% if config.HOSTED %}
+      <p class="note warn" style="margin: 12px 0 0"><span><b>Use anonymised X-rays only:</b> no names, dates of birth or other patient details on the image.</span></p>
+      {% else %}
       <p class="muted small" style="margin: 12px 0 0">SmartDent analyses it straight away. Use fictional or anonymised images only.</p>
+      {% endif %}
     </form>
   </section>
 </div>
