@@ -1,0 +1,15 @@
+# Keep private and bulky files out of the Docker image
+.venv/
+data/
+instance/
+dist/
+_restyle_tmp/
+screenshots/
+.git/
+.pytest_cache/
+**/__pycache__/
+**/*.pyc
+.env
+*.db
+*.zip
+*.tgz

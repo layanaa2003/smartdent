@@ -18,6 +18,10 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
     if not app.config["SECRET_KEY"]:
         app.config["SECRET_KEY"] = load_or_create_secret_key(Path(app.instance_path))
+    if app.config.get("HOSTED"):
+        # Behind Hugging Face's proxy: trust its headers so Flask knows the page is HTTPS.
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     db.init_app(app)
     login_manager.init_app(app)

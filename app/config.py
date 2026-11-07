@@ -28,6 +28,13 @@ class Config:
     SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
     SMTP_SENDER = os.environ.get("SMTP_SENDER", "")
 
+    # Hosted on Hugging Face Spaces (it sets SPACE_ID). The Space page shows the app inside a frame
+    # on huggingface.co, so the login cookie must be allowed there, and only over HTTPS.
+    HOSTED = bool(os.environ.get("SPACE_ID"))
+    if HOSTED:
+        SESSION_COOKIE_SAMESITE = "None"
+        SESSION_COOKIE_SECURE = True
+
 
 class TestConfig(Config):
     """Used by the tests: a throw-away database that lives only in memory."""

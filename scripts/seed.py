@@ -13,6 +13,8 @@ touches a database that is already in use. The demo logins are:
     Dentist        doctor@smartdent.local  / SmartDent-doctor-2026
 
 plus one fictional patient (Demo Patient) belonging to the demo dentist.
+On a public copy (e.g. Hugging Face), set DEMO_ADMIN_PASSWORD and DEMO_DOCTOR_PASSWORD
+to use other passwords than these published ones.
 
 Without --demo, the admin's email and name come from .env (ADMIN_EMAIL, ADMIN_NAME).
 The password comes from ADMIN_PASSWORD in .env if set, otherwise you are asked
@@ -35,9 +37,9 @@ MIN_PASSWORD_LENGTH = 8
 
 # Fixed demo logins, also listed in README.md. Only for a fresh demo database.
 DEMO_ADMIN = {"name": "Demo Administrator", "email": "admin@smartdent.local",
-              "password": "SmartDent-admin-2026"}
+              "password": os.environ.get("DEMO_ADMIN_PASSWORD") or "SmartDent-admin-2026"}
 DEMO_DOCTOR = {"name": "Dr Demo Dentist", "email": "doctor@smartdent.local",
-               "password": "SmartDent-doctor-2026", "phone": "+44 20 7946 0000"}
+               "password": os.environ.get("DEMO_DOCTOR_PASSWORD") or "SmartDent-doctor-2026", "phone": "+44 20 7946 0000"}
 DEMO_PATIENT = {"name": "Demo Patient", "email": "patient@example.com",
                 "phone": "+44 20 7946 0001", "dob": date(1985, 4, 12)}
 
@@ -84,8 +86,11 @@ def create_demo_data():
     db.session.add(Patient(dentist=doctor, **DEMO_PATIENT))
     db.session.commit()
     print("Demo data added:")
-    print(f"  Administrator  {DEMO_ADMIN['email']:<24} password: {DEMO_ADMIN['password']}")
-    print(f"  Dentist        {DEMO_DOCTOR['email']:<24} password: {DEMO_DOCTOR['password']}")
+    for role, account, variable in (("Administrator", DEMO_ADMIN, "DEMO_ADMIN_PASSWORD"),
+                                    ("Dentist", DEMO_DOCTOR, "DEMO_DOCTOR_PASSWORD")):
+        # A password chosen through the environment is secret, so it is never printed.
+        shown = f"(from {variable})" if os.environ.get(variable) else account["password"]
+        print(f"  {role:<14} {account['email']:<24} password: {shown}")
     return True
 
 

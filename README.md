@@ -47,6 +47,13 @@ No `.env` file is needed. SmartDent creates its own secret key in `instance/secr
 The demo dentist has one fictional patient, **Demo Patient**. These accounts exist only in a new,
 empty database (`instance/smartdent.db`). They are for demonstration only.
 
+## Online demo (Hugging Face)
+
+SmartDent can also run as a Hugging Face Docker Space (`Dockerfile`, uploaded with `python deploy_hf.py`).
+The online copy uses its own demo passwords, not the ones above, and starts with a fresh database
+whenever the Space restarts. Open it at its direct address (`https://<user>-smartdent.hf.space`);
+some browsers, including Safari on iPhone, block the login inside the embedded Hugging Face page.
+
 ## How to use
 
 **As the dentist** (`doctor@smartdent.local`):

@@ -15,7 +15,8 @@ OUT = ROOT / "dist" / "SmartDent.zip"
 
 INCLUDE = ["app", "ml", "scripts", "tests", "notebooks", "docs", "samples", "models/best.pt",
            "run.py", "requirements.txt", "start.bat", "start.sh", "start.command", "README.md",
-           ".env.example", ".gitignore", "pytest.ini", "build_zip.py"]
+           ".env.example", ".gitignore", "pytest.ini", "build_zip.py",
+           "Dockerfile", ".dockerignore", "deploy_hf.py"]
 SKIP_DIRS = {".venv", "__pycache__", ".pytest_cache", "instance", "uploads", "data", "_restyle_tmp", "dist",
              ".ipynb_checkpoints"}
 SKIP_FILES = {".env", "secret_key", "kaggle.json"}
