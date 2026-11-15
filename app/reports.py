@@ -2,11 +2,15 @@
 The PDF report for one analysed X-ray, made with ReportLab.
 
 It contains the patient and doctor details, the annotated X-ray, a table of
-findings with confidence scores, the summary written for this X-ray, suggested
-next steps for the dentist, and the advisory disclaimer.
+findings with confidence scores, the findings the dentist added by hand, the
+summary written for this X-ray, suggested next steps for the dentist, and the
+advisory disclaimer.
 """
 from datetime import datetime
 from pathlib import Path
+from xml.sax.saxutils import escape
+
+import cv2
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -50,6 +54,54 @@ def findings_table(findings):
     return table
 
 
+def added_table(added, width=None, height=None):
+    """One row per finding the dentist added by hand: condition, area and note."""
+    from app.recommendations import area_of
+    styles = getSampleStyleSheet()
+    rows = [["#", "Condition", "Area", "Dentist's note"]]
+    rows += [[str(i), f.label, area_of(f.box, width, height) or "-", Paragraph(escape(f.note or "-"), styles["Normal"])]
+             for i, f in enumerate(added, 1)]
+    table = Table(rows, colWidths=[1.2 * cm, 4.3 * cm, 4.5 * cm, 5 * cm])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#eef2f7")),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#d9e2ec")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    return table
+
+
+def draw_dentist_findings(annotated_path, added):
+    """
+    The annotated X-ray (AI boxes) with the dentist's own boxes drawn on top: a white
+    outline around the condition's colour, labelled "Dentist: <condition>".
+    Saved next to the annotated copy and returned; with no dentist findings, the
+    annotated copy itself is returned.
+    """
+    if not added:
+        return annotated_path
+    from app.inference import CLASS_COLOURS
+    image = cv2.imread(str(annotated_path))
+    if image is None:
+        return annotated_path
+    thickness = max(2, image.shape[1] // 600)
+    font_scale = max(0.5, image.shape[1] / 2000)
+    for f in added:
+        x1, y1, x2, y2 = f.box
+        colour = CLASS_COLOURS.get(f.label, (255, 255, 255))
+        cv2.rectangle(image, (x1, y1), (x2, y2), (255, 255, 255), thickness * 3)
+        cv2.rectangle(image, (x1, y1), (x2, y2), colour, thickness)
+        label = f"Dentist: {f.label}"
+        (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 1)
+        top = min(y2 + 4, image.shape[0] - h - 6)            # under the box, so it never covers an AI label
+        cv2.rectangle(image, (x1, top), (x1 + w + 6, top + h + 6), (255, 255, 255), -1)
+        cv2.putText(image, label, (x1 + 3, top + h + 2), cv2.FONT_HERSHEY_SIMPLEX,
+                    font_scale, (0, 0, 0), 1, cv2.LINE_AA)
+    out = Path(annotated_path).with_name(Path(annotated_path).stem + "_dentist.jpg")
+    cv2.imwrite(str(out), image)
+    return out
+
+
 def review_line(findings):
     """One sentence summing up the dentist's review, e.g. 'Dentist review: 2 agreed, 1 disagreed'."""
     agreed = sum(f.get("review") == "agree" for f in findings)
@@ -79,6 +131,8 @@ def next_steps_section(xray, styles):
                        "treatment is your decision.", styles["Italic"]), Spacer(1, 0.2 * cm)]
     for step in assessment["steps"]:
         title = f"<b>{step['label']}</b> ({step['areas']})"
+        if step.get("added"):
+            title += " - includes a finding the dentist added"
         if step["low"]:
             title += " - low confidence, look again first"
         parts += [Paragraph(title, styles["Normal"]),
@@ -91,23 +145,37 @@ def next_steps_section(xray, styles):
     return parts
 
 
+def added_section(added, size, styles):
+    """'Findings added by the dentist' (things the AI missed), or nothing if there are none."""
+    if not added:
+        return []
+    return [Paragraph("Findings added by the dentist", styles["Heading2"]),
+            Paragraph("The dentist marked these on the X-ray because the AI did not. "
+                      "They have no AI confidence score.", styles["Italic"]),
+            Spacer(1, 0.2 * cm), added_table(added, *size), Spacer(1, 0.3 * cm)]
+
+
 def build_report_pdf(pdf_path, patient, doctor, xray, result, annotated_path, summary):
     """Write the PDF to pdf_path."""
+    from app.recommendations import image_size
     styles = getSampleStyleSheet()
     findings = result.findings
+    added = list(xray.dentist_findings)
+    picture = draw_dentist_findings(annotated_path, added)
     story = [
         Paragraph("SmartDent X-ray report", styles["Title"]),
         Paragraph(f"Generated {datetime.now():%d %b %Y, %H:%M}", styles["Normal"]),
         Spacer(1, 0.4 * cm),
         details_table(patient, doctor, xray, result),
         Spacer(1, 0.4 * cm),
-        scaled_image(annotated_path),
+        scaled_image(picture),
         Spacer(1, 0.4 * cm),
-        Paragraph("Findings", styles["Heading2"]),
-        findings_table(findings) if findings else Paragraph("No findings detected.", styles["Normal"]),
+        Paragraph("AI findings", styles["Heading2"]),
+        findings_table(findings) if findings else Paragraph("The AI did not mark any findings.", styles["Normal"]),
         Spacer(1, 0.2 * cm),
         Paragraph(review_line(findings), styles["Normal"]) if findings else Spacer(1, 0),
         Spacer(1, 0.3 * cm),
+        *added_section(added, image_size(annotated_path), styles),
         Paragraph("Summary for this X-ray", styles["Heading2"]),
         Paragraph(summary, styles["Normal"]),
         Spacer(1, 0.3 * cm),

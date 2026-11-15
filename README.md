@@ -6,7 +6,7 @@ alongside their own judgment. **SmartDent does not diagnose.** The dentist makes
 and can agree or disagree with each AI finding.
 
 - Image type: **panoramic** X-rays only (JPEG or PNG).
-- It looks for **4 conditions**: caries, periapical lesion, impacted tooth, bone loss.
+- It looks for **5 conditions**: caries, periapical lesion, impacted tooth, bone loss, retained root.
 - Everything runs on your own computer. X-rays never leave it.
 
 TM471 final-year project.

@@ -3,6 +3,7 @@
 data/
 *.pt
 !models/best.pt
+!models/best_v1.pt
 *.pth
 *.onnx
 *.ckpt
@@ -33,6 +34,9 @@ __pycache__/
 # Build output, old backups and local screenshots
 dist/
 _restyle_tmp/
+_tmp_5class/
+_tmp_rr_edit.py
+_backup_*/
 screenshots/
 *.zip
 *.tgz

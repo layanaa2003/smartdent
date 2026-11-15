@@ -17,7 +17,7 @@ import sys
 from collections import Counter, defaultdict
 
 # Original dataset IDs of the four conditions we train on (checked in data.yaml).
-TARGET_CLASSES = {0: "Caries", 7: "Periapical lesion", 11: "Impacted tooth", 13: "Bone Loss"}
+TARGET_CLASSES = {0: "Caries", 7: "Periapical lesion", 11: "Impacted tooth", 13: "Bone Loss", 8: "Retained root"}
 SPLITS = ["train", "valid", "test"]
 
 

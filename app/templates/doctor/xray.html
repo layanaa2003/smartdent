@@ -1,9 +1,10 @@
 {% extends "base.html" %}
-{% from "_macros.html" import button_form %}
+{% from "_macros.html" import button_form, field %}
 {% block title %}X-ray of {{ xray.patient.name }}{% endblock %}
 {% block content %}
 {% set findings = xray.result.findings if xray.result else [] %}
 {% set reviewed = (reviews.agree + reviews.disagree) if reviews else 0 %}
+{% set added = xray.dentist_findings %}
 <a class="back-link" href="{{ url_for('doctor.patient', patient_id=xray.patient.id) }}">&larr; {{ xray.patient.name }}</a>
 <div class="page-head result-head">
   <div>
@@ -19,6 +20,7 @@
       {% else %}
         <span class="chip cyan"><span class="dot"></span>Awaiting dentist review</span>
       {% endif %}
+      {% if added %}<span class="chip">{{ added|length }} added by you</span>{% endif %}
     </div>
   </div>
 </div>
@@ -39,6 +41,12 @@
                style="--c: {{ colours.get(f.label, '#999') }}; --d: {{ 0.9 + loop.index0 * 0.12 }}s" hidden>
               <span>{{ f.label }} {{ "%.0f"|format(f.confidence * 100) }}%</span></i>
           {% endfor %}
+          {# Findings the dentist added by hand: white outline, label under the box. #}
+          {% for f in added %}
+            <i class="box dentist" data-index="d{{ f.id }}" data-box="{{ f.box|join(',') }}"
+               style="--c: {{ colours.get(f.label, '#999') }}; --d: {{ 0.9 + (findings|length + loop.index0) * 0.12 }}s" hidden>
+              <span>You: {{ f.label }}</span></i>
+          {% endfor %}
         </div>
         <span class="scanline" aria-hidden="true"></span>
       {% else %}
@@ -47,19 +55,65 @@
       </div>
       <figcaption>
         {% if xray.result %}
-          <label class="switch"><input type="checkbox" id="show-boxes" checked> Show AI boxes</label>
+          <label class="switch"><input type="checkbox" id="show-boxes" checked> Show boxes</label>
         {% endif %}
-        <span class="muted">Click the X-ray to zoom.{% if findings %} Point at a box to find it in the list.{% endif %}</span>
+        <span class="muted" data-caption>Click the X-ray to zoom.{% if findings or added %} Point at a box to find it in the list.{% endif %}</span>
       </figcaption>
     </figure>
 
-    {% if findings %}
+    {% if findings or added %}
     {# Colour key, matching the boxes drawn on the X-ray. #}
     <div class="legend">
       {% for label, colour in colours.items() %}
         <span><span class="swatch" style="background: {{ colour }}"></span>{{ label }}</span>
       {% endfor %}
+      {% if added %}<span><span class="swatch added"></span>White outline: added by you</span>{% endif %}
     </div>
+    {% endif %}
+
+    {% if xray.result %}
+    {# Findings the AI missed, marked by the dentist. Stored apart from the AI's (see DentistFinding). #}
+    <section class="card" id="added-findings">
+      <div class="panel-title">
+        <h2>Findings you added</h2>
+        {% if added %}<span class="mono muted">{{ added|length }} added</span>{% endif %}
+      </div>
+      <p class="muted small">Did the AI miss something? Mark it on the X-ray. It is saved as your finding, apart from the AI's,
+        and goes into the summary, next steps and PDF report.</p>
+      {% if added %}
+      <ul class="findings">
+      {% for f in added %}
+        <li id="finding-d{{ f.id }}" data-index="d{{ f.id }}" class="added" style="--c: {{ colours.get(f.label, '#999') }}">
+          <span class="swatch" style="background: {{ colours.get(f.label, '#999') }}"></span>
+          <strong>{{ f.label }}</strong>
+          <span class="chip">Added by you</span>
+          {% if f.note %}<p class="added-note">{{ f.note }}</p>{% endif %}
+          <form class="review" method="post" action="{{ url_for('doctor.delete_finding', xray_id=xray.id, finding_id=f.id) }}"
+                onsubmit="return confirm('Remove this finding you added?');">
+            {{ confirm.hidden_tag() }}
+            <button class="pill no">Remove</button>
+          </form>
+        </li>
+      {% endfor %}
+      </ul>
+      {% endif %}
+      <button type="button" class="button" id="start-drawing" hidden>+ Mark a missed finding</button>
+      <noscript><p class="muted small">Marking a finding needs JavaScript turned on.</p></noscript>
+      {# static/app.js fills in x1, y1, x2, y2 when the dentist draws a box on the X-ray. #}
+      <form id="add-finding-form" class="add-finding" method="post" action="{{ url_for('doctor.add_finding', xray_id=xray.id) }}"
+            data-colours="{{ colours|tojson|forceescape }}" hidden>
+        {{ add_form.hidden_tag() }}
+        <p class="note" data-draw-hint>Drag on the X-ray to draw a box around the area.</p>
+        <div class="fields">
+          {{ field(add_form.label) }}
+          {{ field(add_form.note, placeholder="For example: distal surface, check clinically", maxlength=300) }}
+        </div>
+        <div class="button-row">
+          <button class="button primary" type="submit" disabled>Save finding</button>
+          <button class="button" type="button" data-cancel>Cancel</button>
+        </div>
+      </form>
+    </section>
     {% endif %}
 
     {% if assessment and assessment.steps %}
@@ -76,9 +130,9 @@
         <summary>
           <span class="swatch" style="background: {{ colours.get(step.label, '#999') }}"></span>
           <span><b>{{ step.label }}</b><small>{{ step.areas|capitalize }}</small></span>
-          {% if step.agreed %}<span class="chip sage">You agreed</span>{% elif step.low %}<span class="chip amber">Low confidence</span>{% endif %}
+          {% if step.added %}<span class="chip">Includes your finding</span>{% elif step.agreed %}<span class="chip sage">You agreed</span>{% elif step.low %}<span class="chip amber">Low confidence</span>{% endif %}
         </summary>
-        {% if step.low %}<p class="note warn">The AI is not very sure here. Look at this area again before acting on it.</p>{% endif %}
+        {% if step.low and not step.added %}<p class="note warn">The AI is not very sure here. Look at this area again before acting on it.</p>{% endif %}
         <h3>Check</h3><p>{{ step.check }}</p>
         <h3>If you confirm it</h3><p>{{ step.consider }}</p>
         {% if step.note %}<p class="note">{{ step.note }}</p>{% endif %}
@@ -139,7 +193,7 @@
           </ul>
         {% else %}
           <div class="no-findings"><b>No findings marked</b>
-            <span class="small">The AI did not find caries, periapical lesions, impacted teeth or bone loss. Check the whole image yourself before deciding.</span></div>
+            <span class="small">The AI did not find caries, periapical lesions, impacted teeth, bone loss or retained roots. Check the whole image yourself before deciding.</span></div>
         {% endif %}
         {% if assessment %}<h2>Summary for this X-ray</h2><p class="summary">{{ assessment.summary }}</p>{% endif %}
         <p class="muted small">{{ xray.result.model_version }}, analysed {{ xray.result.analysis_date|datetime }}.
@@ -176,7 +230,7 @@
     <div class="advisory">
       <span class="mono">ADVISORY ONLY</span>
       <b>SmartDent suggests. You decide.</b>
-      Check the whole image, not only the boxes. Agree or disagree with each finding before sharing results with the patient.
+      Check the whole image, not only the boxes, and mark anything the AI missed. Agree or disagree with each finding before sharing results with the patient.
     </div>
   </aside>
 </div>

@@ -4,8 +4,12 @@ token to each form, so other websites can't submit forms on a user's behalf.
 """
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired
-from wtforms import BooleanField, DateField, EmailField, PasswordField, SelectField, StringField, SubmitField
-from wtforms.validators import DataRequired, Email, Length, Optional
+from wtforms import (BooleanField, DateField, EmailField, IntegerField, PasswordField, SelectField,
+                     StringField, SubmitField)
+from wtforms.validators import DataRequired, Email, InputRequired, Length, NumberRange, Optional
+from wtforms.widgets import HiddenInput
+
+from ml import CLASS_NAMES
 
 ALLOWED_IMAGE_TYPES = ["jpg", "jpeg", "png"]
 
@@ -55,3 +59,17 @@ class XRayUploadForm(FlaskForm):
 class ConfirmForm(FlaskForm):
     """An empty form, used for buttons (delete, send) so they still carry a CSRF token."""
     submit = SubmitField("Confirm")
+
+
+class DentistFindingForm(FlaskForm):
+    """
+    A finding the dentist adds by hand. The box (x1, y1, x2, y2, in image pixels) is
+    filled in by static/app.js when the dentist draws on the X-ray.
+    """
+    label = SelectField("Finding", choices=[(n, n) for n in CLASS_NAMES], validators=[DataRequired()])
+    note = StringField("Note (optional)", validators=[Optional(), Length(max=300)])
+    x1 = IntegerField(widget=HiddenInput(), validators=[InputRequired(), NumberRange(min=0)])
+    y1 = IntegerField(widget=HiddenInput(), validators=[InputRequired(), NumberRange(min=0)])
+    x2 = IntegerField(widget=HiddenInput(), validators=[InputRequired(), NumberRange(min=0)])
+    y2 = IntegerField(widget=HiddenInput(), validators=[InputRequired(), NumberRange(min=0)])
+    submit = SubmitField("Save finding")

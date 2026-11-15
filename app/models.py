@@ -2,12 +2,15 @@
 Database tables, matching the ER diagram in the report:
 
   Dentist 1---* Patient 1---* XRayImage 1---1 AnalysisResult 1---* Report
+                              XRayImage 1---* DentistFinding
 
   Dentist        - a user account. role is "admin" or "doctor".
   Patient        - belongs to the doctor who added them.
   XRayImage      - an uploaded panoramic X-ray of a patient.
   AnalysisResult - what the AI found on one X-ray (stored as JSON text).
   Report         - a PDF summary of a result, written for the patient.
+  DentistFinding - a finding the DENTIST marked by hand because the AI missed it.
+                   Kept apart from the AI's findings, and kept when the AI is re-run.
 
 Each class is one table; each db.Column is one column.
 """
@@ -94,6 +97,8 @@ class XRayImage(db.Model):
     dentist = db.relationship("Dentist")
     result = db.relationship("AnalysisResult", back_populates="image", uselist=False,
                              cascade="all, delete-orphan")
+    dentist_findings = db.relationship("DentistFinding", back_populates="image",
+                                       cascade="all, delete-orphan", order_by="DentistFinding.id")
 
     def __repr__(self):
         return f"<XRayImage {self.id} of patient {self.patient_id}>"
@@ -151,6 +156,38 @@ class Report(db.Model):
 
     def __repr__(self):
         return f"<Report {self.id}>"
+
+
+class DentistFinding(db.Model):
+    """
+    A finding the dentist added by drawing a box on the X-ray, for something the AI missed.
+    It belongs to the X-ray (not to the AI result), so re-running the AI does not delete it.
+    The box is in pixels of the original image, like the AI's boxes.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    image_id = db.Column(db.Integer, db.ForeignKey("x_ray_image.id"), nullable=False, index=True)
+    dentist_id = db.Column(db.Integer, db.ForeignKey("dentist.id"), nullable=False)
+    label = db.Column(db.String(40), nullable=False)            # one of ml.CLASS_NAMES
+    x1 = db.Column(db.Integer, nullable=False)
+    y1 = db.Column(db.Integer, nullable=False)
+    x2 = db.Column(db.Integer, nullable=False)
+    y2 = db.Column(db.Integer, nullable=False)
+    note = db.Column(db.String(300))
+    created_date = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+    image = db.relationship("XRayImage", back_populates="dentist_findings")
+    dentist = db.relationship("Dentist")
+
+    @property
+    def box(self):
+        return [self.x1, self.y1, self.x2, self.y2]
+
+    def as_dict(self):
+        """Same shape as an AI finding, so the summary and report code can use both."""
+        return {"label": self.label, "box": self.box, "note": self.note or "", "source": "dentist"}
+
+    def __repr__(self):
+        return f"<DentistFinding {self.label} on image {self.image_id}>"
 
 
 @login_manager.user_loader

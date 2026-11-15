@@ -52,3 +52,28 @@ def test_no_findings():
 def test_every_condition_has_a_rule():
     from ml import CLASS_NAMES
     assert set(NEXT_STEPS) == set(CLASS_NAMES)
+
+
+# ---------------------------------------------------------------- findings the dentist added
+
+ADDED = [{"label": "Impacted tooth", "box": [560, 500, 620, 560], "note": "lower left 8", "source": "dentist"}]
+
+
+def test_dentist_findings_go_into_summary_and_steps():
+    result = assess(FINDINGS, 640, 640, age=34, patient_name="Sara Example", added=ADDED)
+    assert "You added 1 finding the AI missed: impacted tooth in the lower left back teeth." in result["summary"]
+    step = next(s for s in result["steps"] if s["label"] == "Impacted tooth")
+    assert step["added"] and not step["low"] and "lower left back teeth" in step["check"]
+    assert result["pending"] == 1 and result["rejected"] == 1      # still about the AI's findings only
+
+
+def test_dentist_findings_when_the_ai_found_nothing():
+    result = assess([], 640, 640, added=ADDED)
+    assert "did not mark any" in result["summary"] and "You added 1 finding" in result["summary"]
+    assert "not proof of health" not in result["summary"]
+    assert [s["label"] for s in result["steps"]] == ["Impacted tooth"]
+
+
+def test_two_dentist_findings_of_the_same_kind_are_both_listed():
+    two = ADDED + [{"label": "Impacted tooth", "box": [560, 500, 620, 560], "note": ""}]
+    assert "You added 2 findings" in assess([], 640, 640, added=two)["summary"]

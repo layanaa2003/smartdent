@@ -83,3 +83,39 @@ def worst_images(per_image, top=12):
         _, missed, false_alarms = match_boxes(truths, predictions)
         scored.append((name, missed, false_alarms))
     return sorted(scored, key=lambda s: -(s[1] + s[2]))[:top]
+
+def flagged_classes(predictions, thresholds):
+    """Classes the model flags on one X-ray. thresholds: {class_id: minimum confidence}."""
+    return {cls for cls, _, score in predictions if score >= thresholds[cls]}
+
+
+def threshold_sweep(per_image, thresholds=(0.05, 0.10, 0.15, 0.20, 0.25, 0.35, 0.50)):
+    """
+    Per-X-ray sensitivity and specificity of every class at several confidence thresholds.
+    per_image: {image_name: (truths, predictions)}, predicted with a very LOW confidence (e.g. 0.01)
+    so that we can raise the threshold here without running the model again.
+    Returns [{"class", "threshold", "sensitivity", "specificity"}, ...].
+    """
+    rows = []
+    for threshold in thresholds:
+        same_for_all = {cls: threshold for cls in range(len(CLASS_NAMES))}
+        pairs = [({c for c, _ in t}, flagged_classes(p, same_for_all)) for t, p in per_image.values()]
+        for name, m in image_level_metrics(pairs).items():
+            rows.append({"class": name, "threshold": threshold,
+                         "sensitivity": m["sensitivity"], "specificity": m["specificity"]})
+    return rows
+
+
+def pick_thresholds(sweep_rows, min_sensitivity=0.80, default=0.25):
+    """
+    For each class, pick the HIGHEST threshold that still reaches min_sensitivity
+    (highest = fewest false alarms). If none reaches it, use the lowest threshold tried.
+    Returns {class_id: threshold}.
+    """
+    chosen = {}
+    for cls, name in enumerate(CLASS_NAMES):
+        rows = sorted((r for r in sweep_rows if r["class"] == name), key=lambda r: r["threshold"])
+        good = [r["threshold"] for r in rows if r["sensitivity"] is not None and r["sensitivity"] >= min_sensitivity]
+        has_cases = any(r["sensitivity"] is not None for r in rows)
+        chosen[cls] = max(good) if good else (rows[0]["threshold"] if has_cases else default)
+    return chosen

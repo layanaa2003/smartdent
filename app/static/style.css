@@ -300,6 +300,16 @@ form.inline { display: inline; }
 .box.disagree { border-style: dashed; opacity: 0.45 !important; }
 .box.disagree span { text-decoration: line-through; }
 .boxes-off .box { pointer-events: none; }
+/* Findings the dentist added: white outline, white label under the box */
+.box.dentist { border-width: 3px; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 3px rgba(0, 0, 0, 0.35); }
+.box.dentist span { top: 100%; bottom: auto; margin: 4px 0 0; background: var(--white); color: var(--navy); box-shadow: inset 0 0 0 2px var(--c); }
+/* Drawing a missed finding: the whole X-ray takes the drag, existing boxes step back */
+.drawing .film { outline: 2px dashed var(--cyan); outline-offset: -2px; }
+.drawing .boxes { pointer-events: auto; cursor: crosshair; touch-action: none; }
+.drawing .box { pointer-events: none; }
+.drawing .box:not(.draft) { opacity: 0.55 !important; }
+.box.draft { animation: none; opacity: 1; border-style: dashed; border-width: 3px; background: color-mix(in srgb, var(--c, #62D9FF) 14%, transparent);
+             box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
 @keyframes box-in { from { opacity: 0; transform: scale(1.08); } to { opacity: 1; transform: none; } }
 .xray figcaption { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 10px 4px; color: #C9D5E6; font-size: 0.9rem; }
 .xray figcaption .muted { color: #9FB0C8; }
@@ -329,6 +339,14 @@ form.inline { display: inline; }
 .findings li.reviewed-disagree { background: var(--pearl); }
 .findings li.reviewed-disagree strong { text-decoration: line-through; color: var(--muted); }
 .findings form.review { grid-column: 2 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
+.findings li.added { border-color: color-mix(in srgb, var(--c) 45%, var(--mist)); }
+.findings .added-note { grid-column: 2 / -1; margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+.xray-stack #added-findings { margin: 0; }
+#added-findings .findings { grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); }
+.add-finding { margin-top: 4px; }
+.add-finding .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 0 14px; }
+.add-finding .button-row { margin-top: 0; }
+.legend .swatch.added { background: var(--white); box-shadow: 0 0 0 2px var(--ink); }
 .confidence { display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.86rem; }
 .bar { width: 64px; height: 6px; background: var(--mist); border-radius: 6px; overflow: hidden; display: inline-block; }
 .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--aqua), var(--cyan)); border-radius: 6px; }

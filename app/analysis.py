@@ -8,8 +8,8 @@ from flask import current_app
 
 from app.extensions import db
 from app.inference import analyze_file, annotated_name, model_version
-from app.models import AnalysisResult, Report
-from app.recommendations import assess_xray
+from app.models import AnalysisResult, DentistFinding, Report
+from app.recommendations import assess_xray, image_size
 from app.reports import build_report_pdf
 from app.storage import upload_path
 
@@ -71,6 +71,53 @@ def review_counts(findings):
     for f in findings:
         counts[f.get("review")] += 1
     return counts
+
+
+MIN_BOX_SIZE = 4        # pixels; smaller boxes are almost certainly a stray click
+
+
+class BadBox(ValueError):
+    """The box drawn by the dentist is outside the image or too small."""
+
+
+def clean_box(box, width, height):
+    """
+    Put x1,y1 at the top left, keep the box inside the image, and refuse tiny boxes.
+    Returns [x1, y1, x2, y2] or raises BadBox.
+    """
+    x1, x2 = sorted((box[0], box[2]))
+    y1, y2 = sorted((box[1], box[3]))
+    if width and height:
+        x1, x2 = max(0, min(x1, width)), max(0, min(x2, width))
+        y1, y2 = max(0, min(y1, height)), max(0, min(y2, height))
+    if x2 - x1 < MIN_BOX_SIZE or y2 - y1 < MIN_BOX_SIZE:
+        raise BadBox("Draw a box around the area on the X-ray first.")
+    return [x1, y1, x2, y2]
+
+
+def add_dentist_finding(xray, doctor, label, box, note=""):
+    """
+    Save a finding the dentist marked by hand (something the AI missed), then
+    rebuild the PDF report so it includes it. Raises BadBox for an unusable box.
+    """
+    x1, y1, x2, y2 = clean_box(box, *image_size(upload_path(xray.image_path)))
+    finding = DentistFinding(image=xray, dentist_id=doctor.id, label=label,
+                             x1=x1, y1=y1, x2=x2, y2=y2, note=(note or "").strip() or None)
+    db.session.add(finding)
+    db.session.flush()
+    if xray.result is not None:
+        rebuild_report(xray, doctor)
+    db.session.commit()
+    return finding
+
+
+def remove_dentist_finding(xray, finding, doctor):
+    """Delete one dentist-added finding and rebuild the report."""
+    xray.dentist_findings.remove(finding)        # delete-orphan removes the row
+    db.session.flush()
+    if xray.result is not None:
+        rebuild_report(xray, doctor)
+    db.session.commit()
 
 
 def rebuild_report(xray, doctor):

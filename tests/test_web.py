@@ -320,3 +320,123 @@ def test_analysis_page_shows_summary_and_next_steps(client, app):
     page = client.get(f"/doctor/xrays/{xray.id}").data
     assert b"Summary for this X-ray" in page and b"Suggested next steps" in page
     assert b"bitewing" in page and b"1 finding you rejected is left out" in page
+
+
+# ---------------------------------------------------------------- findings the dentist adds by hand
+
+def analysed_xray(app, doctor, findings=None, size=(200, 100)):
+    """An X-ray with an AI result and a PDF report, without needing the real model."""
+    from app.analysis import rebuild_report
+    from app.models import AnalysisResult, Report
+    patient = make_patient(doctor, name="Ada Example")
+    ok, encoded = cv2.imencode(".png", np.zeros((size[1], size[0], 3), np.uint8))
+    (app.config["UPLOAD_FOLDER"] / "p.png").write_bytes(encoded.tobytes())
+    (app.config["UPLOAD_FOLDER"] / "p_annotated.jpg").write_bytes(cv2.imencode(".jpg", np.zeros((size[1], size[0], 3), np.uint8))[1].tobytes())
+    xray = XRayImage(patient=patient, dentist_id=doctor.id, image_path="p.png")
+    db.session.add(xray)
+    result = AnalysisResult(image=xray, model_version="test", findings=findings or [])
+    db.session.add(result)
+    db.session.add(Report(result=result, dentist_id=doctor.id, summary="-", file_path="r.pdf"))
+    db.session.commit()
+    rebuild_report(xray, doctor)
+    db.session.commit()
+    return xray
+
+
+def add(client, xray, **values):
+    data = {"label": "Caries", "note": "", "x1": 10, "y1": 10, "x2": 60, "y2": 40, **values}
+    return client.post(f"/doctor/xrays/{xray.id}/dentist-findings", data=data, follow_redirects=True)
+
+
+def pdf_text(app):
+    """The raw bytes of the newest report PDF (built uncompressed by the test, so text can be searched)."""
+    return (app.config["UPLOAD_FOLDER"] / "r.pdf").read_bytes()
+
+
+def test_dentist_adds_a_missed_finding(client, app, monkeypatch):
+    from reportlab import rl_config
+    from app.models import DentistFinding
+    monkeypatch.setattr(rl_config, "pageCompression", 0)
+    doctor = make_user("doc@example.com")
+    xray = analysed_xray(app, doctor)
+    login(client, "doc@example.com")
+    assert b"Mark a missed finding" in client.get(f"/doctor/xrays/{xray.id}").data
+
+    page = add(client, xray, label="Retained root", note="Check <b>clinically</b>").data
+    finding = DentistFinding.query.one()
+    assert (finding.label, finding.box, finding.dentist_id) == ("Retained root", [10, 10, 60, 40], doctor.id)
+    assert b"Findings you added" in page and b"You: Retained root" in page
+    assert b"Check &lt;b&gt;clinically&lt;/b&gt;" in page               # the note is shown, safely
+    assert b"You added 1 finding the AI missed: retained root" in page   # summary
+    assert b"Includes your finding" in page                              # next steps
+    assert xray.result.findings == []                                    # stored apart from the AI's findings
+    assert b"Findings added by the dentist" in pdf_text(app)             # PDF report rebuilt
+    assert (app.config["UPLOAD_FOLDER"] / "p_annotated_dentist.jpg").exists()   # with the box drawn on
+
+
+def test_dentist_findings_survive_a_re_run_of_the_ai(client, app):
+    from app.analysis import remove_old_result
+    doctor = make_user("doc@example.com")
+    xray = analysed_xray(app, doctor)
+    login(client, "doc@example.com")
+    add(client, xray)
+    remove_old_result(xray)                     # what "Re-run analysis" does first
+    db.session.commit()
+    assert len(xray.dentist_findings) == 1
+
+
+def test_box_is_tidied_and_kept_inside_the_image(client, app):
+    from app.models import DentistFinding
+    doctor = make_user("doc@example.com")
+    xray = analysed_xray(app, doctor, size=(200, 100))
+    login(client, "doc@example.com")
+    add(client, xray, x1=150, y1=90, x2=500, y2=20)          # drawn right-to-left, past the edge
+    assert DentistFinding.query.one().box == [150, 20, 200, 90]
+
+
+def test_bad_findings_are_refused(client, app):
+    from app.models import DentistFinding
+    doctor = make_user("doc@example.com")
+    xray = analysed_xray(app, doctor)
+    login(client, "doc@example.com")
+    assert b"Draw a box" in add(client, xray, x2=12, y2=12).data            # a stray click
+    assert b"not saved" in add(client, xray, label="Gum disease").data      # not one of the classes
+    assert b"not saved" in add(client, xray, x1="").data                    # no box at all
+    assert b"not saved" in add(client, xray, note="x" * 301).data
+    assert DentistFinding.query.count() == 0
+
+
+def test_dentist_removes_their_finding(client, app):
+    from app.models import DentistFinding
+    doctor = make_user("doc@example.com")
+    xray = analysed_xray(app, doctor)
+    login(client, "doc@example.com")
+    add(client, xray)
+    finding = DentistFinding.query.one()
+    page = client.post(f"/doctor/xrays/{xray.id}/dentist-findings/{finding.id}/delete", follow_redirects=True).data
+    assert DentistFinding.query.count() == 0 and b"Your finding was removed" in page
+
+
+def test_other_doctors_cannot_add_or_remove_findings(client, app):
+    from app.models import DentistFinding
+    owner = make_user("owner@example.com")
+    xray = analysed_xray(app, owner)
+    login(client, "owner@example.com")
+    add(client, xray)
+    finding = DentistFinding.query.one()
+    client.post("/logout")
+    make_user("other@example.com")
+    login(client, "other@example.com")
+    assert add(client, xray).status_code == 404
+    assert client.post(f"/doctor/xrays/{xray.id}/dentist-findings/{finding.id}/delete").status_code == 404
+    assert DentistFinding.query.count() == 1
+
+
+def test_cannot_add_findings_before_the_ai_has_run(client, app):
+    doctor = make_user("doc@example.com")
+    patient = make_patient(doctor)
+    xray = XRayImage(patient=patient, dentist_id=doctor.id, image_path="none.png")
+    db.session.add(xray)
+    db.session.commit()
+    login(client, "doc@example.com")
+    assert add(client, xray).status_code == 400

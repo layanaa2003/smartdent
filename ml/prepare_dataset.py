@@ -5,7 +5,7 @@ Why this is needed (see docs/phase1_dataset_report.md):
   * The Kaggle test split has no Bone Loss at all.
   * The same X-ray appears in train AND test (as augmented copies), which
     would make test scores look better than they really are.
-  * We only want 4 of the 31 classes, renumbered 0-3.
+  * We only want 5 of the 31 classes, renumbered 0-4.
   * Labels are polygons; we train box detection, so we convert them to boxes.
   * File names contain patient names, so we give every image a neutral name.
 
@@ -14,7 +14,7 @@ What it does:
   2. Split the originals 70 / 15 / 15 into train / val / test, so one X-ray
      and its copies always land in exactly one split ("grouped" split), and
      each split gets a fair share of every class ("stratified").
-  3. Keep only our 4 classes, renumber them, turn polygons into boxes.
+  3. Keep only our 5 classes, renumber them, turn polygons into boxes.
   4. Train keeps all augmented copies; val and test keep one copy per X-ray
      (the highest resolution one), so every X-ray is scored once.
   5. Preprocess each image (ml/preprocess.py) and write YOLO folders + data.yaml.
@@ -35,11 +35,13 @@ from pathlib import Path
 
 from ml import CLASS_NAMES
 
-# Original Kaggle class ID -> our new class ID.
-ORIGINAL_TO_NEW = {0: 0, 7: 1, 11: 2, 13: 3}
+# Our classes by their NAME in the Kaggle data.yaml (lower case) -> our new class ID.
+# Names are used instead of IDs so a new class can't be picked up by a wrong number.
+TARGET_NAMES = {"caries": 0, "periapical lesion": 1, "impacted tooth": 2, "bone loss": 3, "retained root": 4}
+ORIGINAL_TO_NEW = {}           # original Kaggle ID -> new ID, filled from data.yaml by load_class_map()
 SPLIT_RATIOS = {"train": 0.70, "val": 0.15, "test": 0.15}
 SEED = 42                      # fixed seed = the same split every time
-RARE_CLASSES = {1, 3}          # Periapical lesion, Bone Loss (fewest examples)
+RARE_CLASSES = {1, 3, 4}       # Periapical lesion, Bone Loss, Retained root (fewest examples)
 
 
 # ---------------------------------------------------------------- reading the data
@@ -101,6 +103,20 @@ def find_yolo_root(src):
         if (yaml_file.parent / "train" / "labels").exists():
             return yaml_file.parent
     raise FileNotFoundError(f"No Kaggle YOLO folder found inside {src}")
+
+
+def load_class_map(yolo_root):
+    """Read the class names in data.yaml and return {original ID: new ID} for our classes."""
+    import yaml
+    names = yaml.safe_load((Path(yolo_root) / "data.yaml").read_text())["names"]
+    names = dict(enumerate(names)) if isinstance(names, list) else names
+    by_name = {str(name).strip().lower(): int(original) for original, name in names.items()}
+    missing = [name for name in TARGET_NAMES if name not in by_name]
+    if missing:
+        raise KeyError(f"Not in data.yaml: {missing}. Its classes are: {sorted(by_name)}")
+    mapping = {by_name[name]: new for name, new in TARGET_NAMES.items()}
+    print("Original ID -> new ID:", {f"{names[o]} ({o})": n for o, n in mapping.items()})
+    return mapping
 
 
 def collect_originals(yolo_root):
@@ -267,7 +283,9 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="only print the split numbers")
     args = parser.parse_args()
 
-    groups = collect_originals(find_yolo_root(args.src))
+    yolo_root = find_yolo_root(args.src)
+    ORIGINAL_TO_NEW.update(load_class_map(yolo_root))
+    groups = collect_originals(yolo_root)
     print(f"Found {sum(len(c) for c in groups.values())} images from {len(groups)} original X-rays")
     assignment = split_originals(groups)
     plan = add_oversampling(build_plan(groups, assignment), args.oversample)

@@ -9,13 +9,14 @@ from flask import (Blueprint, abort, current_app, flash, redirect, render_templa
                    url_for)
 from flask_login import current_user
 
-from app.analysis import REVIEW_CHOICES, review_counts, run_analysis, set_review
+from app.analysis import (REVIEW_CHOICES, BadBox, add_dentist_finding, remove_dentist_finding, review_counts,
+                          run_analysis, set_review)
 from app.auth import role_required
 from app.inference import ModelNotFound, annotated_name
 from app.emailer import email_configured, send_email
 from app.extensions import db
-from app.forms import ConfirmForm, PatientForm, TransferForm, XRayUploadForm
-from app.models import Patient, XRayImage
+from app.forms import ConfirmForm, DentistFindingForm, PatientForm, TransferForm, XRayUploadForm
+from app.models import DentistFinding, Patient, XRayImage
 from app.recommendations import assess_xray
 from app.stats import doctor_stats, xrays_to_review
 from app.storage import InvalidImage, save_upload, upload_path
@@ -25,7 +26,8 @@ bp = Blueprint("doctor", __name__)
 
 # Same colours as the boxes drawn in app/inference.py, as CSS colours for the findings list.
 FINDING_COLOURS = {"Caries": "#e62828", "Periapical lesion": "#ffc800",
-                   "Impacted tooth": "#1ea0e6", "Bone Loss": "#3cc83c"}
+                   "Impacted tooth": "#1ea0e6", "Bone Loss": "#3cc83c",
+                   "Retained root": "#c850c8"}
 
 
 def own_patient_or_404(patient_id):
@@ -120,6 +122,7 @@ def xray(xray_id):
     """One X-ray with its AI diagnosis (when available) and the send options."""
     xray = own_xray_or_404(xray_id)
     return render_template("doctor/xray.html", xray=xray, confirm=ConfirmForm(),
+                           add_form=DentistFindingForm(formdata=None),
                            report=latest_report(xray), colours=FINDING_COLOURS,
                            reviews=review_counts(xray.result.findings) if xray.result else None,
                            can_email=email_configured() and bool(xray.patient.email),
@@ -161,6 +164,38 @@ def review_finding(xray_id, index):
     if ConfirmForm().validate_on_submit():
         set_review(xray, index, decision, current_user)
     return redirect(url_for("doctor.xray", xray_id=xray.id))
+
+
+@bp.route("/xrays/<int:xray_id>/dentist-findings", methods=["POST"])
+@role_required("doctor")
+def add_finding(xray_id):
+    """The dentist marks something the AI missed: a box drawn on the X-ray, a condition and a note."""
+    xray = own_xray_or_404(xray_id)
+    if xray.result is None:
+        abort(400)                                   # the summary and report only exist after analysis
+    form = DentistFindingForm()
+    if not form.validate_on_submit():
+        flash("The finding was not saved. Draw a box on the X-ray, then pick what it is.", "error")
+    else:
+        try:
+            add_dentist_finding(xray, current_user, form.label.data,
+                                [form.x1.data, form.y1.data, form.x2.data, form.y2.data], form.note.data)
+            flash(f"Your finding ({form.label.data}) was added to the summary and report.", "success")
+        except BadBox as error:
+            flash(str(error), "error")
+    return redirect(url_for("doctor.xray", xray_id=xray.id) + "#added-findings")
+
+
+@bp.route("/xrays/<int:xray_id>/dentist-findings/<int:finding_id>/delete", methods=["POST"])
+@role_required("doctor")
+def delete_finding(xray_id, finding_id):
+    """Remove one finding the dentist added."""
+    xray = own_xray_or_404(xray_id)
+    finding = DentistFinding.query.filter_by(id=finding_id, image_id=xray.id).first_or_404()
+    if ConfirmForm().validate_on_submit():
+        remove_dentist_finding(xray, finding, current_user)
+        flash("Your finding was removed.", "success")
+    return redirect(url_for("doctor.xray", xray_id=xray.id) + "#added-findings")
 
 
 @bp.route("/xrays/<int:xray_id>/image")

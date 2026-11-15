@@ -1,5 +1,5 @@
 // SmartDent page helpers: table search, table sorting, X-ray zoom, AI boxes,
-// drag-and-drop upload and the "AI is reading the X-ray" loading page.
+// marking findings the AI missed, drag-and-drop upload and the "AI is reading the X-ray" loading page.
 // Plain JavaScript, no libraries. Each part only runs if its elements are on the page.
 
 // ---------- 1. Search: <input data-filter="tableId"> hides rows that don't match ----------
@@ -201,4 +201,85 @@ if (analysing) {
   });
   // Coming back with the Back button can show the old page from memory: hide the overlay again.
   window.addEventListener("pageshow", stop);
+}
+
+// ---------- 7. Mark a finding the AI missed: drag a box on the X-ray, pick the condition, save ----------
+// The box is saved in pixels of the original image (like the AI's boxes), so it lines up at any page size.
+const drawButton = document.getElementById("start-drawing");
+const addForm = document.getElementById("add-finding-form");
+if (drawButton && addForm && xrayImg && boxLayer) {
+  const figure = document.getElementById("xray-figure");
+  const toggle = document.getElementById("show-boxes");
+  const hint = addForm.querySelector("[data-draw-hint]");
+  const save = addForm.querySelector("button[type=submit]");
+  const coords = ["x1", "y1", "x2", "y2"].map((name) => addForm.elements[name]);
+  const condition = addForm.elements["label"];
+  const colours = JSON.parse(addForm.dataset.colours || "{}");
+  const draft = document.createElement("i");
+  draft.className = "box draft";
+  draft.hidden = true;
+  boxLayer.appendChild(draft);
+  let start = null;
+
+  const colour = () => draft.style.setProperty("--c", colours[condition.value] || "#62D9FF");
+  const fraction = (e) => {                     // pointer position as 0..1 of the picture
+    const r = boxLayer.getBoundingClientRect();
+    const clamp = (v) => Math.min(1, Math.max(0, v));
+    return [clamp((e.clientX - r.left) / r.width), clamp((e.clientY - r.top) / r.height)];
+  };
+  const show = (a, b) => {
+    Object.assign(draft.style, {
+      left: 100 * Math.min(a[0], b[0]) + "%", top: 100 * Math.min(a[1], b[1]) + "%",
+      width: 100 * Math.abs(a[0] - b[0]) + "%", height: 100 * Math.abs(a[1] - b[1]) + "%",
+    });
+  };
+  const open = () => {
+    addForm.hidden = false;
+    drawButton.hidden = true;
+    figure.classList.add("drawing");
+    figure.classList.remove("boxes-off");
+    if (toggle) toggle.checked = true;
+    colour();
+    figure.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+  const close = () => {
+    addForm.hidden = true;
+    drawButton.hidden = false;
+    figure.classList.remove("drawing");
+    draft.hidden = true;
+    coords.forEach((input) => { input.value = ""; });
+    save.disabled = true;
+    hint.textContent = "Drag on the X-ray to draw a box around the area.";
+  };
+
+  drawButton.hidden = false;
+  drawButton.addEventListener("click", open);
+  addForm.querySelector("[data-cancel]").addEventListener("click", close);
+  condition.addEventListener("change", colour);
+
+  boxLayer.addEventListener("pointerdown", (e) => {
+    if (!figure.classList.contains("drawing")) return;
+    e.preventDefault();
+    boxLayer.setPointerCapture(e.pointerId);
+    start = fraction(e);
+    show(start, start);
+    draft.hidden = false;
+  });
+  boxLayer.addEventListener("pointermove", (e) => { if (start) show(start, fraction(e)); });
+  boxLayer.addEventListener("pointerup", (e) => {
+    if (!start) return;
+    const end = fraction(e);
+    const w = xrayImg.naturalWidth, h = xrayImg.naturalHeight;
+    const box = [Math.min(start[0], end[0]) * w, Math.min(start[1], end[1]) * h,
+                 Math.max(start[0], end[0]) * w, Math.max(start[1], end[1]) * h].map(Math.round);
+    start = null;
+    const bigEnough = box[2] - box[0] >= 4 && box[3] - box[1] >= 4;
+    coords.forEach((input, i) => { input.value = bigEnough ? box[i] : ""; });
+    save.disabled = !bigEnough;
+    draft.hidden = !bigEnough;
+    hint.textContent = bigEnough
+      ? "Box drawn. Pick what it is and save. Drag again to redraw it."
+      : "That box is too small. Drag across the area on the X-ray.";
+  });
+  boxLayer.addEventListener("pointercancel", () => { start = null; });
 }

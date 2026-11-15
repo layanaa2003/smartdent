@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "dist" / "SmartDent.zip"
 
-INCLUDE = ["app", "ml", "scripts", "tests", "notebooks", "docs", "samples", "models/best.pt",
+INCLUDE = ["app", "ml", "scripts", "tests", "notebooks", "docs", "samples", "models/best.pt", "models/thresholds.json",
            "run.py", "requirements.txt", "start.bat", "start.sh", "start.command", "README.md",
            ".env.example", ".gitignore", "pytest.ini", "build_zip.py",
            "Dockerfile", ".dockerignore", "deploy_hf.py"]

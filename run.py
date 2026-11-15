@@ -15,6 +15,7 @@ import threading
 import webbrowser
 
 from app import create_app
+from app.extensions import db
 from app.inference import get_model
 
 HOST = "127.0.0.1"     # this computer only; never reachable from the network
@@ -32,6 +33,8 @@ def free_port(first, tries=10):
 
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()          # adds any new tables (e.g. dentist findings) to an older database
     # Load the AI model in the background now, so the first upload doesn't wait for it.
     if app.config["MODEL_PATH"].exists():
         threading.Thread(target=get_model, args=(app.config["MODEL_PATH"],), daemon=True).start()

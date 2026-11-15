@@ -5,7 +5,7 @@
 <title>SmartDent</title>
 <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo-icon.png') }}">
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="SmartDent is the AI layer dentists use to read periapical and bitewing x-rays. It highlights areas for review; your dentist makes every decision.">
+<meta name="description" content="SmartDent is the AI layer dentists use to read panoramic x-rays. It highlights possible caries, periapical lesions, impacted teeth, bone loss and retained roots for review; your dentist makes every decision.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Average+Sans&family=IBM+Plex+Mono:wght@400;500&family=Rufina:wght@400;700&display=swap">
@@ -387,14 +387,14 @@ form.bf{position:relative;background:var(--white);color:var(--navy);border-radiu
       <div class="hero-copy">
         <span class="eyebrow">AI-assisted · Dentist-led</span>
         <h1 class="h1">See your x-rays clearly, with your dentist beside you.</h1>
-        <p class="lede">SmartDent is the AI layer dentists use to read panoramic x-rays. It flags possible caries, periapical lesions, impacted teeth and bone loss, shows how confident it is about each one, and keeps every patient's imaging history in one place. A dentist reviews every finding before it reaches the patient.</p>
+        <p class="lede">SmartDent is the AI layer dentists use to read panoramic x-rays. It flags possible caries, periapical lesions, impacted teeth, bone loss and retained roots, shows how confident it is about each one, and keeps every patient's imaging history in one place. A dentist reviews every finding before it reaches the patient.</p>
         <div class="hero-actions">
           <a class="btn btn-navy" href="#book">Book an X-Ray Review <span class="arr"></span></a>
           <a class="btn btn-ghost" href="#overview">See how it works</a>
         </div>
         <div class="hero-meta">
           <span>Panoramic (OPG) x-rays</span>
-          <span>Four findings, each with a confidence score</span>
+          <span>Five findings, each with a confidence score</span>
           <span>PDF reports for patients</span>
         </div>
       </div>
@@ -450,7 +450,7 @@ form.bf{position:relative;background:var(--white);color:var(--navy);border-radiu
             <div class="glass step-card">
               <span class="num">STEP 2 OF 4 · SCAN</span>
               <h3>SmartDent reads the image</h3>
-              <p>A detection model trained on de-identified panoramic x-rays looks for four things: caries, periapical lesions, impacted teeth and bone loss.</p>
+              <p>A detection model trained on de-identified panoramic x-rays looks for five things: caries, periapical lesions, impacted teeth, bone loss and retained roots.</p>
               <div class="step-bar"><i></i></div>
             </div>
           </div>
@@ -493,8 +493,8 @@ form.bf{position:relative;background:var(--white);color:var(--navy);border-radiu
         </article>
         <article class="svc">
           <span class="svc-ico" style="background:var(--mint)"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#071B3A" stroke-width="1.6"><rect x="4" y="4" width="9" height="9" rx="2.5"/><rect x="15" y="4" width="9" height="9" rx="2.5" stroke="#1F6B55"/><rect x="4" y="15" width="9" height="9" rx="2.5" stroke="#1F6B55"/><rect x="15" y="15" width="9" height="9" rx="2.5"/></svg></span>
-          <h3>Four findings, clearly marked</h3>
-          <p>Caries, periapical lesions, impacted teeth and bone loss, each boxed with a confidence score.</p>
+          <h3>Five findings, clearly marked</h3>
+          <p>Caries, periapical lesions, impacted teeth, bone loss and retained roots, each boxed with a confidence score.</p>
           <span class="mono">Boxes · labels · confidence</span>
         </article>
         <article class="svc">
@@ -531,7 +531,7 @@ form.bf{position:relative;background:var(--white);color:var(--navy);border-radiu
           <div class="doc-body">
             <h3>Dr Clara Hale</h3>
             <span class="role">Clinical Lead, Restorative Dentistry</span>
-            <p>Reviews bitewing highlights and leads how SmartDent findings are explained to patients.</p>
+            <p>Reviews highlighted caries on panoramic x-rays and leads how SmartDent findings are explained to patients.</p>
             <span class="mono">Registration no. 000000 · placeholder</span>
           </div>
         </article>
@@ -543,7 +543,7 @@ form.bf{position:relative;background:var(--white);color:var(--navy);border-radiu
           <div class="doc-body">
             <h3>Dr Samir Okafor</h3>
             <span class="role">Dentist, Endodontics</span>
-            <p>Reads periapical images for root and bone changes, and signs off root-canal follow-ups.</p>
+            <p>Reads panoramic images for root and bone changes, including retained roots, and signs off root-canal follow-ups.</p>
             <span class="mono">Registration no. 000000 · placeholder</span>
           </div>
         </article>
@@ -612,13 +612,13 @@ form.bf{position:relative;background:var(--white);color:var(--navy);border-radiu
         <div class="app-body">
           <div class="timeline" role="list">
             <h4>X-ray history</h4>
-            <button class="visit sel" type="button" data-visit="0"><b>Panoramic</b><span>14 Oct 2026 · 3 findings</span></button>
+            <button class="visit sel" type="button" data-visit="0"><b>Panoramic</b><span>14 Oct 2026 · 4 findings</span></button>
             <button class="visit" type="button" data-visit="1"><b>Panoramic</b><span>2 Mar 2026 · 1 finding</span></button>
             <button class="visit" type="button" data-visit="2"><b>Panoramic</b><span>18 Sep 2025 · no findings</span></button>
           </div>
           <div class="viewer">
             <div class="film" id="film">
-              <img id="film-img" alt="Example panoramic x-ray with three possible findings boxed">
+              <img id="film-img" alt="Example panoramic x-ray with four possible findings boxed">
               <span class="scanline" aria-hidden="true"></span>
             </div>
             <div class="viewer-meta mono"><span>PANORAMIC · OPG</span><span>YOLOv8 · best.pt</span><span id="visit-label">Uploaded 14 Oct 2026</span></div>
@@ -639,6 +639,11 @@ form.bf{position:relative;background:var(--white);color:var(--navy);border-radiu
               <span class="row"><span class="pill pill-cyan">To review</span><span class="mono" style="color:var(--muted)">92%</span></span>
               <b>Impacted tooth</b>
               <p>Lower left third molar, tipped forwards.</p>
+            </div>
+            <div class="finding">
+              <span class="row"><span class="pill pill-cyan">To review</span><span class="mono" style="color:var(--muted)">74%</span></span>
+              <b>Retained root</b>
+              <p>Upper left first premolar. The crown is gone and a root is still in the bone.</p>
             </div>
             <div class="next">
               <span class="mono" style="color:var(--sage)">WHEN YOU'RE DONE</span>
@@ -673,7 +678,7 @@ form.bf{position:relative;background:var(--white);color:var(--navy);border-radiu
         </details>
         <details>
           <summary>What does it look for?</summary>
-          <div class="ans">Four things: caries (decay), periapical lesions (infection or inflammation at a root tip), impacted teeth, and bone loss. Anything else is left to your dentist’s own reading of the image.</div>
+          <div class="ans">Five things: caries (decay), periapical lesions (infection or inflammation at a root tip), impacted teeth, bone loss, and retained roots (roots left in the jaw after a tooth was lost). Anything else is left to your dentist’s own reading of the image.</div>
         </details>
         <details>
           <summary>What does the confidence score mean?</summary>
@@ -796,7 +801,7 @@ bf.addEventListener('submit', function(e){
 
 /* ---------- Procedural panoramic radiograph (OPG) ---------- */
 var XW = 1600, XH = 800, CX = 800;
-var BOXES = {};   // filled while drawing: caries, apical, impacted (canvas pixels)
+var BOXES = {};   // filled while drawing: caries, apical, impacted, retained (canvas pixels)
 var UP_W = [58,52,60,63,63,86,84,78], LO_W = [46,50,58,62,64,92,88,82];
 var CHS = [92,88,96,82,82,78,76,74], RLS = [140,130,170,140,140,120,115,105];
 
@@ -891,6 +896,23 @@ function makeXray(){
       // upper tooth
       var uw = UP_W[k], ucx = ux + side*uw/2, uy = upOcc(ucx), ua = Math.atan(2*K*(ucx-CX))*.9;
       var caries = (side===-1 && k===5);
+      if(side===1 && k===3){
+        // retained root: the crown is gone, one root is left in the bone
+        c.save(); c.translate(ucx, uy); c.rotate(ua);
+        var rh = uw/2, top = -CHS[k]*.55, apx = -(CHS[k]+RLS[k]*.9);
+        c.beginPath(); c.moveTo(-rh*.52, top+6);
+        c.lineTo(-rh*.22, top-10); c.lineTo(0, top+4); c.lineTo(rh*.26, top-12); c.lineTo(rh*.5, top+2);
+        c.bezierCurveTo(rh*.46, top-RLS[k]*.45, rh*.2, apx+18, 0, apx);
+        c.bezierCurveTo(-rh*.2, apx+18, -rh*.46, top-RLS[k]*.45, -rh*.52, top+6); c.closePath();
+        c.fillStyle = 'rgb(176,180,184)'; c.fill();
+        c.lineWidth = 2.5; c.strokeStyle = 'rgba(40,44,50,.55)'; c.stroke();
+        c.strokeStyle = 'rgb(96,100,106)'; c.lineWidth = 4; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(0, top-6); c.lineTo(0, apx+12); c.stroke();
+        var m3 = c.getTransform(); c.restore();
+        var rp = function(x,y){ return {x: m3.a*x + m3.c*y + m3.e, y: m3.b*x + m3.d*y + m3.f}; };
+        BOXES.retained = boxAround([rp(-rh*.55, top+8), rp(rh*.55, top+8), rp(0, apx)], 16);
+        ux += side*(uw+4);
+      } else {
       var map = drawTooth(c, ucx, uy, ua, uw, CHS[k], RLS[k], t, -1, caries ? function(c,h,ch){
         var g = c.createRadialGradient(-h*.86,ch*.30,2,-h*.86,ch*.30,h*.3);
         g.addColorStop(0,'rgba(26,28,32,.9)'); g.addColorStop(.6,'rgba(40,42,46,.55)'); g.addColorStop(1,'rgba(40,42,46,0)');
@@ -898,6 +920,7 @@ function makeXray(){
       } : null);
       if(caries){ BOXES.caries = boxAround([map(-uw*.55,-6), map(-uw*.2,CHS[k]*.65)], 18); }
       ux += side*(uw+4);
+      }
       // lower tooth
       var lw = LO_W[k], lcx = lx + side*lw/2, ly = loOcc(lcx), la = -Math.atan(2*K*(lcx-CX))*.9;
       if(side===1 && k===7){
@@ -939,7 +962,8 @@ function makeXray(){
 var FINDINGS = [
   {key:'caries', flag:'Possible caries · 81%', done:'Caries · agreed'},
   {key:'apical', flag:'Periapical lesion · 57%', done:'Periapical lesion · agreed'},
-  {key:'impacted', flag:'Impacted tooth · 92%', done:'Impacted tooth · agreed'}
+  {key:'impacted', flag:'Impacted tooth · 92%', done:'Impacted tooth · agreed'},
+  {key:'retained', flag:'Retained root · 74%', done:'Retained root · agreed'}
 ];
 function makeOverlay(mode){
   var cv = document.createElement('canvas'); cv.width = XW; cv.height = XH;
@@ -985,7 +1009,7 @@ function fallback(xray){
   var url = comp.toDataURL('image/jpeg', .9);
   [stages.hero, stages.ov].forEach(function(s){
     var f = document.createElement('div'); f.className = 'fallback-film';
-    var im = new Image(); im.src = url; im.alt = 'Example bitewing x-ray'; f.appendChild(im); s.appendChild(f);
+    var im = new Image(); im.src = url; im.alt = 'Example panoramic x-ray with four possible findings boxed'; f.appendChild(im); s.appendChild(f);
   });
 }
 

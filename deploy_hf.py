@@ -53,7 +53,7 @@ short_description: AI support for reading panoramic dental X-rays
 # SmartDent
 
 SmartDent assists dentists in reading panoramic dental X-rays. It marks possible caries,
-periapical lesions, impacted teeth and bone loss for the dentist to review. It does not diagnose;
+periapical lesions, impacted teeth, bone loss and retained roots for the dentist to review. It does not diagnose;
 the dentist makes every decision. TM471 final-year project.
 
 This online demo starts with a fresh database each time the Space restarts.

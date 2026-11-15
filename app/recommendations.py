@@ -8,7 +8,8 @@ What the detection model gives us per finding is only a condition, a box and a
 confidence score. It cannot tell tooth numbers, caries depth or lesion size, so:
   - the "area" is an approximate region worked out from where the box sits;
   - every next step says "check / consider" and "if you confirm it";
-  - findings the dentist marked "disagree" are left out of the next steps.
+  - findings the dentist marked "disagree" are left out of the next steps;
+  - findings the dentist added by hand (the AI missed them) are included, marked as theirs.
 
 The NEXT_STEPS table comes from published guidelines (see "SmartDent next-steps guide",
 https://claude.ai/artifact/BBNEiEyY7L7QzRbkbJ6i3D). A supervising dentist should check and edit it.
@@ -45,6 +46,15 @@ NEXT_STEPS = {
                     "fast-progressing disease.",
         "source": "EFP S3-level guideline, Treatment of stage I-III periodontitis (2020)",
     },
+    "Retained root": {
+        "check": "Examine the {areas} for swelling, a sinus tract or tenderness, and take a periapical X-ray to look for "
+                 "infection around the root and to see how close it is to the nerve canal or sinus. Ask about pain and "
+                 "when the tooth was lost.",
+        "consider": "If you confirm it: removal (or an oral surgery referral) when it is infected, causes symptoms, or sits "
+                    "where a denture, bridge or implant is planned. A small, symptom-free root fully covered by bone with "
+                    "no signs of infection can be left and monitored, especially near the nerve or sinus.",
+        "source": "General oral surgery practice; no specific guideline cited yet, so the supervising dentist should confirm it",
+    },
     "Impacted tooth": {
         "check": "Ask about pain, swelling or past infections, check the gum over the tooth in the {areas} and the tooth next "
                  "to it. Before any surgery, check how close it is to the nerve canal or sinus (CBCT if needed).",
@@ -73,7 +83,8 @@ def age_note(label, age):
 # ---------------------------------------------------------------- reading the boxes
 
 HIGH, MODERATE = 0.70, 0.45
-PLURALS = {"Caries": "caries", "Periapical lesion": "periapical lesions", "Impacted tooth": "impacted teeth", "Bone Loss": "bone loss"}
+PLURALS = {"Caries": "caries", "Periapical lesion": "periapical lesions", "Impacted tooth": "impacted teeth", "Bone Loss": "bone loss",
+           "Retained root": "retained roots"}
 
 
 def confidence_band(confidence):
@@ -125,51 +136,69 @@ def plural(n, word):
 
 # ---------------------------------------------------------------- the summary
 
-def assess(findings, width=None, height=None, age=None, patient_name=None):
+def assess(findings, width=None, height=None, age=None, patient_name=None, added=None):
     """
+    findings are the AI's; added are the findings the dentist marked by hand
+    (dicts with label, box and note), because the AI missed them.
+
     Returns a dict:
       summary  - one paragraph about this X-ray
-      items    - per finding: label, area, band, confidence, review
-      steps    - per condition (not rejected by the dentist): label, areas, check, consider, low, note
-      rejected - how many findings the dentist disagreed with
-      pending  - how many findings are not reviewed yet
+      items    - per AI finding: label, area, band, confidence, review
+      added    - per dentist finding: label, area, note
+      steps    - per condition (not rejected by the dentist): label, areas, check, consider, low, note,
+                 agreed (dentist agreed with an AI box), added (dentist marked it by hand)
+      rejected - how many AI findings the dentist disagreed with
+      pending  - how many AI findings are not reviewed yet
     """
     items = [{"label": f["label"], "confidence": f["confidence"], "review": f.get("review"),
               "band": confidence_band(f["confidence"]), "area": area_of(f["box"], width, height)}
              for f in findings]
+    extra = [{"label": f["label"], "note": f.get("note") or "", "area": area_of(f["box"], width, height),
+              "review": "dentist", "band": "dentist"}
+             for f in (added or [])]
     rejected = sum(i["review"] == "disagree" for i in items)
     pending = sum(i["review"] is None for i in items)
     who = patient_name.split()[0] if patient_name else "this patient"
     who_age = f"{who} ({age})" if age is not None else who
 
     if not items:
-        summary = (f"The AI did not mark any caries, periapical lesions, impacted teeth or bone loss on "
-                   f"the panoramic X-ray of {who_age}. A clear result is not proof of health: check the whole image, "
-                   f"including areas the model was not trained on.")
-        return {"summary": summary, "items": items, "steps": [], "rejected": 0, "pending": 0}
+        summary = (f"The AI did not mark any {join_words(PLURALS.get(n, n.lower()) for n in CLASS_NAMES)} on "
+                   f"the panoramic X-ray of {who_age}.")
+        if not extra:
+            summary += (" A clear result is not proof of health: check the whole image, "
+                        "including areas the model was not trained on.")
+    else:
+        # One phrase per finding, strongest first: "possible caries in the upper right back teeth (high confidence, 81%)"
+        phrases = []
+        for i in sorted(items, key=lambda i: -i["confidence"]):
+            where = f" in the {i['area']}" if i["area"] else ""
+            phrase = f"possible {i['label'].lower()}{where} ({i['band']} confidence, {i['confidence']:.0%})"
+            if i["review"] == "agree":
+                phrase += ", which you agreed with"
+            elif i["review"] == "disagree":
+                phrase += ", which you rejected"
+            phrases.append(phrase)
+        summary = (f"On the panoramic X-ray of {who_age}, the AI marked {plural(len(items), 'finding')}: "
+                   f"{join_words(phrases)}.")
+        found = {i["label"] for i in items}
+        clear = [PLURALS.get(n, n.lower()) for n in CLASS_NAMES if n not in found]
+        if clear:
+            summary += f" It did not mark any {join_words(clear)}."
 
-    # One phrase per finding, strongest first: "possible caries in the upper right back teeth (high confidence, 81%)"
-    phrases = []
-    for i in sorted(items, key=lambda i: -i["confidence"]):
-        where = f" in the {i['area']}" if i["area"] else ""
-        phrase = f"possible {i['label'].lower()}{where} ({i['band']} confidence, {i['confidence']:.0%})"
-        if i["review"] == "agree":
-            phrase += ", which you agreed with"
-        elif i["review"] == "disagree":
-            phrase += ", which you rejected"
-        phrases.append(phrase)
-    summary = f"On the panoramic X-ray of {who_age}, the AI marked {plural(len(items), 'finding')}: {join_words(phrases)}."
+    if extra:
+        # Kept as one phrase per finding (not join_words, which would merge two identical ones).
+        phrases = [f"{e['label'].lower()}" + (f" in the {e['area']}" if e["area"] else "") for e in extra]
+        listed = phrases[0] if len(phrases) == 1 else ", ".join(phrases[:-1]) + " and " + phrases[-1]
+        summary += f" You added {plural(len(extra), 'finding')} the AI missed: {listed}."
 
-    found = {i["label"] for i in items}
-    clear = [PLURALS.get(n, n.lower()) for n in CLASS_NAMES if n not in found]
-    if clear:
-        summary += f" It did not mark any {join_words(clear)}."
-    sides = {i["area"].split()[1] for i in items if i["area"] and i["area"].split()[1] in ("left", "right")}
+    placed = [i for i in items + extra if i["area"]]
+    sides = {i["area"].split()[1] for i in placed if i["area"].split()[1] in ("left", "right")}
     if len(sides) == 2:
         summary += " Findings are on both sides of the mouth."
 
-    # Next steps: one per condition the dentist hasn't rejected, most urgent first
-    kept = [i for i in items if i["review"] != "disagree"]
+    # Next steps: one per condition, from the AI findings the dentist hasn't rejected and the
+    # dentist's own findings, most urgent first.
+    kept = [i for i in items if i["review"] != "disagree"] + extra
     steps = []
     for label in NEXT_STEPS:
         hits = [i for i in kept if i["label"] == label]
@@ -183,13 +212,15 @@ def assess(findings, width=None, height=None, age=None, patient_name=None):
             "check": NEXT_STEPS[label]["check"].format(areas=areas),
             "consider": NEXT_STEPS[label]["consider"],
             "source": NEXT_STEPS[label]["source"],
-            "low": all(i["band"] == "low" for i in hits),     # only weak evidence: look again first
+            "low": all(i["band"] == "low" for i in hits),     # only weak AI evidence: look again first
             "agreed": any(i["review"] == "agree" for i in hits),
+            "added": any(i["review"] == "dentist" for i in hits),
             "note": age_note(label, age),
         })
     if steps:
         summary += f" Suggested first check: the {steps[0]['label'].lower()}."
-    return {"summary": summary, "items": items, "steps": steps, "rejected": rejected, "pending": pending}
+    return {"summary": summary, "items": items, "added": extra, "steps": steps,
+            "rejected": rejected, "pending": pending}
 
 
 def assess_xray(xray, path):
@@ -197,4 +228,5 @@ def assess_xray(xray, path):
     if xray.result is None:
         return None
     width, height = image_size(path)
-    return assess(xray.result.findings, width, height, xray.patient.age, xray.patient.name)
+    return assess(xray.result.findings, width, height, xray.patient.age, xray.patient.name,
+                  added=[f.as_dict() for f in xray.dentist_findings])

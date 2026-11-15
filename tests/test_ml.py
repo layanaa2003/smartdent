@@ -13,11 +13,23 @@ def test_polygon_to_box():
     assert (round(cx, 3), round(cy, 3), round(w, 3), round(h, 3)) == (0.2, 0.4, 0.2, 0.4)
 
 
-def test_convert_label_line_remaps_and_drops():
+def test_convert_label_line_remaps_and_drops(monkeypatch):
+    import ml.prepare_dataset as prep
+    monkeypatch.setattr(prep, "ORIGINAL_TO_NEW", {0: 0, 7: 1, 11: 2, 13: 3, 8: 4})
+    assert convert_label_line("8 0.5 0.5 0.2 0.2")[0] == 4      # Retained root -> 4
     assert convert_label_line("13 0.5 0.5 0.2 0.2")[0] == 3     # Bone Loss -> 3
     assert convert_label_line("11 0.5 0.5 0.2 0.2")[0] == 2     # Impacted tooth -> 2
     assert convert_label_line("2 0.5 0.5 0.2 0.2") is None      # Filling is dropped
     assert convert_label_line("") is None
+
+
+def test_class_map_is_read_by_name(tmp_path):
+    from ml.prepare_dataset import load_class_map
+    names = ["Caries", "Crown", "Filling", "Implant", "Malaligned", "Mandibular Canal", "Missing teeth",
+             "Periapical lesion", "Retained root", "Root Canal Treatment", "Root Piece", "impacted tooth",
+             "maxillary sinus", "Bone Loss"]
+    (tmp_path / "data.yaml").write_text("names: " + str(names))
+    assert load_class_map(tmp_path) == {0: 0, 7: 1, 11: 2, 13: 3, 8: 4}
 
 
 def test_split_keeps_copies_together_and_is_repeatable():

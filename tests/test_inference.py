@@ -125,3 +125,41 @@ def test_missing_model_keeps_the_upload(tmp_path):
                                data={"image": (io.BytesIO(png), "scan.png")})
         assert b"model file" in response.data and XRayImage.query.count() == 1
         db.drop_all()
+
+
+class FakeBoxes:
+    def __init__(self, rows):
+        self.cls = type("T", (), {"tolist": lambda s: [r[0] for r in rows]})()
+        self.xyxy = type("T", (), {"tolist": lambda s: [r[1] for r in rows]})()
+        self.conf = type("T", (), {"tolist": lambda s: [r[2] for r in rows]})()
+
+
+class FakeModel:
+    """Stands in for YOLO: returns fixed boxes and remembers how it was called."""
+    ckpt = {"train_args": {"imgsz": 1024}}
+
+    def __init__(self, rows):
+        self.rows, self.calls = rows, []
+
+    def predict(self, image, **kwargs):
+        self.calls.append(kwargs)
+        return [type("R", (), {"boxes": FakeBoxes(self.rows)})()]
+
+
+def test_each_condition_uses_its_own_threshold():
+    from app.inference import detect
+    model = FakeModel([(3, [0, 0, 10, 10], 0.12), (0, [0, 0, 5, 5], 0.20), (4, [1, 1, 4, 4], 0.5)])
+    thresholds = {"Caries": 0.25, "Periapical lesion": 0.25, "Impacted tooth": 0.25,
+                  "Bone Loss": 0.10, "Retained root": 0.30}
+    findings = detect(np.zeros((20, 20, 3), np.uint8), model, thresholds)
+    assert [f["label"] for f in findings] == ["Retained root", "Bone Loss"]   # caries 0.20 < 0.25 dropped
+    assert model.calls[0]["conf"] == 0.10 and model.calls[0]["imgsz"] == 1024
+
+
+def test_thresholds_file_is_optional(tmp_path):
+    from app.inference import load_thresholds
+    model_path = tmp_path / "best.pt"
+    assert set(load_thresholds(model_path).values()) == {0.25}
+    (tmp_path / "thresholds.json").write_text('{"Bone Loss": 0.1}')
+    assert load_thresholds(model_path)["Bone Loss"] == 0.1
+    assert load_thresholds(model_path)["Caries"] == 0.25

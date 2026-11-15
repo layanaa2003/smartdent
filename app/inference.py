@@ -8,6 +8,7 @@ The AI step: from an uploaded X-ray to findings, an annotated image and a summar
 
 The model is loaded once and then reused, because loading takes a few seconds.
 """
+import json
 import threading
 import time
 from datetime import datetime
@@ -18,8 +19,8 @@ import cv2
 from ml import CLASS_NAMES
 from ml.preprocess import preprocess_image
 
-CONFIDENCE_THRESHOLD = 0.25    # ignore boxes the model is less than 25% sure about
-IMAGE_SIZE = 640               # must match the size used in training
+CONFIDENCE_THRESHOLD = 0.25    # default: ignore boxes the model is less than 25% sure about
+IMAGE_SIZE = 640               # default when the model file doesn't say which size it was trained at
 
 # One colour per condition (OpenCV uses Blue, Green, Red order).
 CLASS_COLOURS = {
@@ -27,6 +28,7 @@ CLASS_COLOURS = {
     "Periapical lesion": (0, 200, 255),  # yellow/orange
     "Impacted tooth": (230, 160, 30),    # blue
     "Bone Loss": (60, 200, 60),          # green
+    "Retained root": (200, 80, 200),     # purple
 }
 
 _model = None
@@ -58,13 +60,35 @@ def model_version(model_path):
     return f"YOLOv8 {path.stem} ({stamp})"
 
 
-def detect(image_bgr, model):
+def load_thresholds(model_path):
+    """
+    One confidence threshold per condition, from thresholds.json next to the model
+    (the training notebook exports it). Conditions not in the file, or no file, use 25%.
+    """
+    path = Path(model_path).with_name("thresholds.json")
+    saved = json.loads(path.read_text()) if path.exists() else {}
+    return {name: float(saved.get(name, CONFIDENCE_THRESHOLD)) for name in CLASS_NAMES}
+
+
+def training_size(model):
+    """The image size the model was trained at (640 or 1024), read from the model file."""
+    try:
+        return int(model.ckpt["train_args"]["imgsz"])
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return IMAGE_SIZE
+
+
+def detect(image_bgr, model, thresholds=None):
     """Run the model on one (already preprocessed) image. Returns a list of findings."""
-    result = model.predict(image_bgr, conf=CONFIDENCE_THRESHOLD, imgsz=IMAGE_SIZE, verbose=False)[0]
+    thresholds = thresholds or {name: CONFIDENCE_THRESHOLD for name in CLASS_NAMES}
+    result = model.predict(image_bgr, conf=min(thresholds.values()), imgsz=training_size(model), verbose=False)[0]
     findings = []
     for cls, box, conf in zip(result.boxes.cls.tolist(), result.boxes.xyxy.tolist(),
                               result.boxes.conf.tolist()):
-        findings.append({"label": CLASS_NAMES[int(cls)], "confidence": round(float(conf), 3),
+        label = CLASS_NAMES[int(cls)]
+        if conf < thresholds[label]:                # each condition has its own threshold
+            continue
+        findings.append({"label": label, "confidence": round(float(conf), 3),
                          "box": [round(v) for v in box]})
     return sorted(findings, key=lambda f: -f["confidence"])
 
@@ -80,8 +104,8 @@ def best_scores(findings):
 def summarize(findings):
     """A short plain-language summary of the findings, for the doctor and the report."""
     if not findings:
-        return ("The AI did not detect any of the four conditions it checks for "
-                "(caries, periapical lesion, impacted tooth, bone loss).")
+        return (f"The AI did not detect any of the {len(CLASS_NAMES)} conditions it checks for "
+                f"({', '.join(n.lower() for n in CLASS_NAMES)}).")
     parts = []
     for name in CLASS_NAMES:
         hits = [f for f in findings if f["label"] == name]
@@ -127,7 +151,7 @@ def analyze_file(image_path, model_path):
     image = cv2.imread(str(image_path))
     if image is None:
         raise ValueError(f"Could not read image {image_path}")
-    findings = detect(preprocess_image(image), get_model(model_path))
+    findings = detect(preprocess_image(image), get_model(model_path), load_thresholds(model_path))
     annotated_path = Path(image_path).with_name(annotated_name(Path(image_path).name))
     cv2.imwrite(str(annotated_path), draw_findings(image, findings))
     return findings, best_scores(findings), summarize(findings), annotated_path, time.perf_counter() - started
