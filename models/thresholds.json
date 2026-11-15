@@ -2,6 +2,6 @@
   "Caries": 0.05,
   "Periapical lesion": 0.05,
   "Impacted tooth": 0.5,
-  "Bone Loss": 0.1,
+  "Bone Loss": 0.15,
   "Retained root": 0.05
 }
