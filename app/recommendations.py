@@ -53,7 +53,13 @@ NEXT_STEPS = {
         "consider": "If you confirm it: removal (or an oral surgery referral) when it is infected, causes symptoms, or sits "
                     "where a denture, bridge or implant is planned. A small, symptom-free root fully covered by bone with "
                     "no signs of infection can be left and monitored, especially near the nerve or sinus.",
-        "source": "General oral surgery practice; no specific guideline cited yet, so the supervising dentist should confirm it",
+        # No formal clinical guideline exists for retained roots; these are the peer-reviewed reviews
+        # (checked in Europe PMC: PMID 25766165, 36944000 and 23909230).
+        "source": "Nayyar J, Clarke M, O'Sullivan M, Stassen LF. Fractured root tips during dental extractions and "
+                  "retained root fragments: a clinical dilemma? Br Dent J 2015;218(5):285-290; Benton PN, Chang P. "
+                  "Oral Surgery, Extraction of Roots. StatPearls, 2023; Patel V et al. Dental Update "
+                  "2013;40(5):370-6, doi:10.12968/denu.2013.40.5.370 (roots left in bone); supervising dentist to "
+                  "confirm. Review articles: no formal guideline exists for retained roots",
     },
     "Impacted tooth": {
         "check": "Ask about pain, swelling or past infections, check the gum over the tooth in the {areas} and the tooth next "

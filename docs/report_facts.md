@@ -173,6 +173,16 @@ Dentist features:
 - **PDF report** (rebuilt after every review), download X-ray, email X-ray and report if SMTP is set up.
 - Dashboard with statistics and the X-rays still waiting for review.
 
+Sources behind the suggested next steps (`app/recommendations.py`):
+
+| Finding | Source |
+|---|---|
+| Periapical lesion | ESE S3-level guideline, Treatment of pulpal and apical disease (2023) |
+| Caries | FDI policy statement on carious lesions (2019); SDCEP caries guidance (2018) |
+| Bone loss | EFP S3-level guideline, Treatment of stage I-III periodontitis (2020) |
+| Retained root | Nayyar J, Clarke M, O'Sullivan M, Stassen LF. Fractured root tips during dental extractions and retained root fragments: a clinical dilemma? *Br Dent J* 2015;218(5):285-290 (doi:10.1038/sj.bdj.2015.147); Benton PN, Chang P. Oral Surgery, Extraction of Roots. *StatPearls*, 2023; Patel V et al. *Dental Update* 2013;40(5):370-6, doi:10.12968/denu.2013.40.5.370 (roots left in bone; full title: "To retrieve or not to retrieve the coronectomy root – the clinical dilemma"); supervising dentist to confirm. Review articles: no formal guideline exists for retained roots |
+| Impacted tooth | NICE TA1, Guidance on the extraction of wisdom teeth |
+
 Administrator features: add, edit and remove dentists; see all patients; transfer one patient or all
 of a dentist's patients; a dentist who still has patients cannot be removed until they are moved.
 The administrator cannot open X-rays.
