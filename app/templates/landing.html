@@ -260,6 +260,7 @@ form.bf{position:relative;background:var(--white);color:var(--navy);border-radiu
 .foot ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:15px}
 .foot a{text-decoration:none;color:var(--ink)}
 .foot a:hover{text-decoration:underline}
+.foot .brand:hover{text-decoration:none}
 .foot .legal{margin-top:40px;padding-top:20px;border-top:1px solid var(--mist);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
 
 /* login modal */
@@ -729,7 +730,10 @@ form.bf{position:relative;background:var(--white);color:var(--navy);border-radiu
     <div class="wrap">
       <div class="foot-grid">
         <div style="display:grid;gap:16px">
-          <a class="brand" href="#top">SmartDent</a>
+          <a class="brand" href="#top" aria-label="SmartDent home">
+            <img class="brand-mark" src="{{ url_for('static', filename='logo-icon.png') }}" alt="" width="28" height="36" loading="lazy">
+            SmartDent
+          </a>
           <p>SmartDent is an AI tool that supports dentists reading panoramic x-rays. AI output is advisory only; the dentist makes the final diagnosis.</p>
         </div>
         <div><ul><li><a href="#overview">Overview</a></li><li><a href="#services">Services</a></li><li><a href="#doctors">Doctors</a></li><li><a href="#testimonials">Testimonials</a></li></ul></div>
