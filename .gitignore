@@ -40,3 +40,4 @@ _backup_*/
 screenshots/
 *.zip
 *.tgz
+eval_output/

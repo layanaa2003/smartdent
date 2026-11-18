@@ -56,9 +56,19 @@
       <figcaption>
         {% if xray.result %}
           <label class="switch"><input type="checkbox" id="show-boxes" checked> Show boxes</label>
+          <label class="switch" hidden data-heatmap-switch><input type="checkbox" id="show-heatmap"
+                 data-src="{{ url_for('doctor.heatmap_image', xray_id=xray.id) }}"> Show heatmap</label>
         {% endif %}
         <span class="muted" data-caption>Click the X-ray to zoom.{% if findings or added %} Point at a box to find it in the list.{% endif %}</span>
       </figcaption>
+      {% if xray.result %}
+      <p class="note heatmap-note" id="heatmap-note" hidden>
+        <b>Heatmap: where the AI looked.</b> Red and yellow areas influenced the model most; uncoloured areas
+        had little influence. It shows what drove the model, not whether a finding is real, and it can also
+        light up normal anatomy such as the spine or the jaw joints.
+        <span class="muted small" data-heatmap-status></span>
+      </p>
+      {% endif %}
     </figure>
 
     {% if findings or added %}

@@ -2,12 +2,14 @@
 import io
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pytest
 
 from app import create_app
 from app.config import BASE_DIR, TestConfig
 from app.extensions import db
+from app.heatmap import heatmap_name, principal_map
 from app.inference import best_scores, draw_findings, summarize
 from app.models import Dentist, Patient, XRayImage
 
@@ -68,6 +70,48 @@ def test_upload_runs_ai_and_makes_a_report(client):
     assert client.get("/doctor/xrays/1/annotated").status_code == 200
     pdf = client.get("/doctor/xrays/1/report")
     assert pdf.status_code == 200 and pdf.data.startswith(b"%PDF")
+
+
+@needs_model
+def test_heatmap_is_made_on_request_and_cleared_by_a_re_run(client, tmp_path):
+    client.post("/doctor/patients/1", content_type="multipart/form-data",
+                data={"image": (io.BytesIO(SAMPLE_XRAYS[2].read_bytes()), "scan.jpg")})
+    xray = XRayImage.query.one()
+    heatmap_file = tmp_path / heatmap_name(xray.image_path)
+    assert not heatmap_file.exists()                       # not made until the dentist asks
+    response = client.get("/doctor/xrays/1/heatmap")
+    assert response.status_code == 200 and response.data.startswith(b"\xff\xd8")   # a JPEG
+    response.close()                                       # Windows: let go of the file
+    original = cv2.imread(str(tmp_path / xray.image_path))
+    assert cv2.imread(str(heatmap_file)).shape == original.shape   # same size, so the boxes line up
+    assert b"Show heatmap" in client.get("/doctor/xrays/1").data
+    client.post("/doctor/xrays/1/analyse")
+    assert not heatmap_file.exists()                       # a new analysis gets a fresh heatmap
+
+
+def test_heatmap_needs_an_analysis(tmp_path):
+    app = create_app(TestConfig)
+    app.config.update(UPLOAD_FOLDER=tmp_path, MODEL_PATH=tmp_path / "missing.pt")
+    with app.app_context():
+        db.create_all()
+        doctor = Dentist(name="Dr Test", email="doc@example.com")
+        doctor.set_password("password123")
+        patient = Patient(name="Test Patient", dentist=doctor)
+        db.session.add_all([doctor, patient, XRayImage(patient=patient, dentist=doctor, image_path="x.jpg")])
+        db.session.commit()
+        client = app.test_client()
+        client.post("/login", data={"email": "doc@example.com", "password": "password123"})
+        assert client.get("/doctor/xrays/1/heatmap").status_code == 404
+        db.drop_all()
+
+
+def test_heatmap_principal_component_points_at_strong_features():
+    import torch
+    features = torch.zeros(8, 6, 6)
+    features[:, 2:4, 2:4] = torch.rand(8, 2, 2) + 5        # one strong spot in the middle
+    cam = principal_map(features)
+    assert cam.shape == (6, 6) and cam.max() == pytest.approx(1)
+    assert cam[2:4, 2:4].min() > cam[0, 0]                 # the spot is bright, the background is not
 
 
 @needs_model

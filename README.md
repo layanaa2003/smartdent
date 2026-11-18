@@ -49,9 +49,9 @@ empty database (`instance/smartdent.db`). They are for demonstration only.
 
 ## Online demo (Hugging Face)
 
-SmartDent can also run as a Hugging Face Docker Space (`Dockerfile`, uploaded with `python deploy_hf.py`).
-The online copy uses its own demo passwords, not the ones above, and starts with a fresh database
-whenever the Space restarts. Open it at its direct address (`https://<user>-smartdent.hf.space`);
+SmartDent also runs as a Hugging Face Docker Space (`Dockerfile`, uploaded with `python deploy_hf.py`):
+**https://layanaalnabulsi-smartdent.hf.space**. The online copy uses its own demo passwords, not the
+ones above, and starts with a fresh database whenever the Space restarts. Open it at its direct address;
 some browsers, including Safari on iPhone, block the login inside the embedded Hugging Face page.
 
 ## How to use
@@ -61,7 +61,7 @@ some browsers, including Safari on iPhone, block the login inside the embedded H
 1. Open **Demo Patient** from *My patients* (or add a new patient with *Add patient*).
 2. Under **Upload a new X-ray**, choose one of the files in the `samples/` folder and click **Upload X-ray**.
 3. SmartDent analyses it (a few seconds on a normal laptop) and opens the result:
-   - coloured boxes on the X-ray (click the X-ray to zoom);
+   - coloured boxes on the X-ray (click the X-ray to zoom), and **Show heatmap** to see where the AI looked;
    - the list of **AI findings** with confidence scores; click **Agree** or **Disagree** on each one;
    - **Suggested next steps** based on published dental guidelines;
    - **Download PDF report** for the patient.
@@ -77,17 +77,29 @@ Use fictional or anonymised images only.
 
 | | |
 |---|---|
-| Model | YOLOv8s object detector (Ultralytics), file `models/best.pt` (22 MB) |
+| Model | YOLOv8s object detector (Ultralytics), file `models/best.pt` (22 MB), 5 classes |
 | Data | Kaggle "Dental Disease Panoramic Detection Dataset", 5,976 unique panoramic X-rays |
 | Split | Re-split 70/15/15 by original X-ray, so no X-ray is in both training and test (`ml/prepare_dataset.py`) |
-| Training | Google Colab GPU, 640 px images (`notebooks/smartdent_training.ipynb`) |
+| Training | Kaggle GPU, 1024 px images (`notebooks/smartdent_training_5class_kaggle.ipynb`) |
 | Preprocessing | The same noise reduction and contrast step in training and in the app (`ml/preprocess.py`) |
-| Speed | About 0.2 s per X-ray on a laptop CPU (no GPU needed) |
-| Threshold | Boxes under 25% confidence are not shown |
+| Thresholds | One per condition, chosen on the validation set (`models/thresholds.json`): caries, periapical lesion and retained root 5%, bone loss 15%, impacted tooth 50% |
+| Heatmap | "Show heatmap" colours where the model looked (EigenCAM, `app/heatmap.py`) |
+| Speed | About 0.3 s per X-ray on a laptop CPU (no GPU needed) |
 
-Test-set results (sensitivity per X-ray): impacted tooth 0.995, caries 0.57, bone loss 0.42,
-periapical lesion 0.33; mAP50 over all classes 0.42. Small lesions are the hardest, which is
-one more reason the dentist must check the whole image and not only the boxes.
+Results on 897 test X-rays the model never saw (does the X-ray show the condition?):
+
+| Condition | Sensitivity | Specificity |
+|---|---|---|
+| Caries | 0.84 | 0.83 |
+| Periapical lesion | 0.60 | 0.76 |
+| Impacted tooth | 0.985 | 0.79 |
+| Bone loss | 0.85 | 0.46 |
+| Retained root | 0.43 (only 7 test cases) | 0.985 |
+
+Box mAP50 over all classes: 0.39. Bone loss is flagged often on X-rays without it, and small
+lesions are the hardest, which is one more reason the dentist must check the whole image and not
+only the boxes. Full numbers and how they were made: `docs/report_facts.md` and
+`docs/final_test_results.json` (reproduce with `scripts/evaluate_final.py`).
 
 ## Project structure
 
@@ -103,6 +115,7 @@ smartdent/
 │   ├── admin.py           administrator pages
 │   ├── doctor.py          dentist pages: patients, upload, results, downloads
 │   ├── inference.py       runs the YOLO model and draws the boxes
+│   ├── heatmap.py         "where the AI looked" heatmaps (EigenCAM)
 │   ├── analysis.py        stores results and builds the PDF report
 │   ├── recommendations.py suggested next steps per finding
 │   ├── reports.py         PDF report (ReportLab)
@@ -110,9 +123,9 @@ smartdent/
 │   ├── templates/         HTML pages
 │   └── static/            CSS, JavaScript, logo
 ├── ml/                    preprocessing, dataset preparation, evaluation
-├── models/best.pt         the trained model
-├── notebooks/             Google Colab training notebook
-├── scripts/seed.py        creates the database and demo accounts
+├── models/                the trained model (best.pt) and its per-condition thresholds
+├── notebooks/             training notebooks (Colab and Kaggle; the 5class_kaggle one made the final model)
+├── scripts/               seed.py (database + demo accounts), evaluate_final.py (test-set results)
 ├── samples/               5 de-identified test X-rays to try
 ├── tests/                 automated tests (pytest)
 ├── docs/                  project documents

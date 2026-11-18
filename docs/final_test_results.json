@@ -1,0 +1,571 @@
+{
+  "split_xrays": {
+    "train": 4183,
+    "val": 896,
+    "test": 897
+  },
+  "imgsz": 1024,
+  "thresholds": {
+    "Caries": 0.05,
+    "Periapical lesion": 0.05,
+    "Impacted tooth": 0.5,
+    "Bone Loss": 0.15,
+    "Retained root": 0.05
+  },
+  "train_args": {
+    "epochs": 72,
+    "batch": 4,
+    "model": "yolov8s.pt",
+    "imgsz": 1024,
+    "patience": 15
+  },
+  "val_sweep": [
+    {
+      "class": "Caries",
+      "threshold": 0.05,
+      "sensitivity": 0.8210526315789474,
+      "specificity": 0.8441926345609065
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.05,
+      "sensitivity": 0.706766917293233,
+      "specificity": 0.7575360419397117
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.05,
+      "sensitivity": 0.9917127071823204,
+      "specificity": 0.7616279069767442
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.05,
+      "sensitivity": 1.0,
+      "specificity": 0.15565345080763582
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.05,
+      "sensitivity": 0.5,
+      "specificity": 0.9898876404494382
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.1,
+      "sensitivity": 0.7684210526315789,
+      "specificity": 0.8994334277620396
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.1,
+      "sensitivity": 0.5263157894736842,
+      "specificity": 0.8584534731323722
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.1,
+      "sensitivity": 0.9917127071823204,
+      "specificity": 0.7732558139534884
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.1,
+      "sensitivity": 0.9767441860465116,
+      "specificity": 0.2261380323054332
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.1,
+      "sensitivity": 0.3333333333333333,
+      "specificity": 0.9955056179775281
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.15,
+      "sensitivity": 0.7052631578947368,
+      "specificity": 0.9362606232294618
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.15,
+      "sensitivity": 0.43609022556390975,
+      "specificity": 0.8964613368283093
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.15,
+      "sensitivity": 0.9917127071823204,
+      "specificity": 0.7848837209302325
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.15,
+      "sensitivity": 0.7953488372093023,
+      "specificity": 0.4801762114537445
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.15,
+      "sensitivity": 0.0,
+      "specificity": 0.996629213483146
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.2,
+      "sensitivity": 0.6631578947368421,
+      "specificity": 0.9518413597733711
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.2,
+      "sensitivity": 0.3458646616541353,
+      "specificity": 0.9252948885976409
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.2,
+      "sensitivity": 0.9903314917127072,
+      "specificity": 0.7848837209302325
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.2,
+      "sensitivity": 0.5069767441860465,
+      "specificity": 0.7606461086637298
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.2,
+      "sensitivity": 0.0,
+      "specificity": 0.9977528089887641
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.25,
+      "sensitivity": 0.5842105263157895,
+      "specificity": 0.9674220963172805
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.25,
+      "sensitivity": 0.2857142857142857,
+      "specificity": 0.9528178243774574
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.25,
+      "sensitivity": 0.9903314917127072,
+      "specificity": 0.7906976744186046
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.25,
+      "sensitivity": 0.33488372093023255,
+      "specificity": 0.9251101321585903
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.25,
+      "sensitivity": 0.0,
+      "specificity": 0.998876404494382
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.35,
+      "sensitivity": 0.47368421052631576,
+      "specificity": 0.9886685552407932
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.35,
+      "sensitivity": 0.12781954887218044,
+      "specificity": 0.9829619921363041
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.35,
+      "sensitivity": 0.9848066298342542,
+      "specificity": 0.813953488372093
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.35,
+      "sensitivity": 0.06511627906976744,
+      "specificity": 0.9911894273127754
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.35,
+      "sensitivity": 0.0,
+      "specificity": 1.0
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.5,
+      "sensitivity": 0.3526315789473684,
+      "specificity": 0.9957507082152974
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.5,
+      "sensitivity": 0.022556390977443608,
+      "specificity": 0.9973787680209698
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.5,
+      "sensitivity": 0.9765193370165746,
+      "specificity": 0.8372093023255814
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.5,
+      "sensitivity": 0.0,
+      "specificity": 1.0
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.5,
+      "sensitivity": 0.0,
+      "specificity": 1.0
+    }
+  ],
+  "val_suggested_thresholds_80": {
+    "Caries": 0.05,
+    "Periapical lesion": 0.05,
+    "Impacted tooth": 0.5,
+    "Bone Loss": 0.1,
+    "Retained root": 0.05
+  },
+  "seconds_per_xray_cpu": 0.333,
+  "test_xray_metrics": {
+    "Caries": {
+      "sensitivity": 0.8415300546448088,
+      "specificity": 0.8305322128851541,
+      "accuracy": 0.8327759197324415,
+      "tp": 154,
+      "fn": 29,
+      "tn": 593,
+      "fp": 121
+    },
+    "Periapical lesion": {
+      "sensitivity": 0.6,
+      "specificity": 0.7593307593307593,
+      "accuracy": 0.738015607580825,
+      "tp": 72,
+      "fn": 48,
+      "tn": 590,
+      "fp": 187
+    },
+    "Impacted tooth": {
+      "sensitivity": 0.9850948509485095,
+      "specificity": 0.7924528301886793,
+      "accuracy": 0.9509476031215162,
+      "tp": 727,
+      "fn": 11,
+      "tn": 126,
+      "fp": 33
+    },
+    "Bone Loss": {
+      "sensitivity": 0.8461538461538461,
+      "specificity": 0.46153846153846156,
+      "accuracy": 0.5507246376811594,
+      "tp": 176,
+      "fn": 32,
+      "tn": 318,
+      "fp": 371
+    },
+    "Retained root": {
+      "sensitivity": 0.42857142857142855,
+      "specificity": 0.9853932584269663,
+      "accuracy": 0.9810479375696767,
+      "tp": 3,
+      "fn": 4,
+      "tn": 877,
+      "fp": 13
+    }
+  },
+  "test_sweep": [
+    {
+      "class": "Caries",
+      "threshold": 0.05,
+      "sensitivity": 0.8415300546448088,
+      "specificity": 0.8305322128851541
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.05,
+      "sensitivity": 0.6,
+      "specificity": 0.7593307593307593
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.05,
+      "sensitivity": 0.9959349593495935,
+      "specificity": 0.7295597484276729
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.05,
+      "sensitivity": 1.0,
+      "specificity": 0.1320754716981132
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.05,
+      "sensitivity": 0.42857142857142855,
+      "specificity": 0.9853932584269663
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.1,
+      "sensitivity": 0.7650273224043715,
+      "specificity": 0.896358543417367
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.1,
+      "sensitivity": 0.4666666666666667,
+      "specificity": 0.879021879021879
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.1,
+      "sensitivity": 0.994579945799458,
+      "specificity": 0.7610062893081762
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.1,
+      "sensitivity": 0.9855769230769231,
+      "specificity": 0.193033381712627
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.1,
+      "sensitivity": 0.42857142857142855,
+      "specificity": 0.9943820224719101
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.15,
+      "sensitivity": 0.6885245901639344,
+      "specificity": 0.9411764705882353
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.15,
+      "sensitivity": 0.375,
+      "specificity": 0.9317889317889317
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.15,
+      "sensitivity": 0.994579945799458,
+      "specificity": 0.7672955974842768
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.15,
+      "sensitivity": 0.8461538461538461,
+      "specificity": 0.46153846153846156
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.15,
+      "sensitivity": 0.2857142857142857,
+      "specificity": 0.9943820224719101
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.2,
+      "sensitivity": 0.6174863387978142,
+      "specificity": 0.9495798319327731
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.2,
+      "sensitivity": 0.325,
+      "specificity": 0.9536679536679536
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.2,
+      "sensitivity": 0.994579945799458,
+      "specificity": 0.7735849056603774
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.2,
+      "sensitivity": 0.5192307692307693,
+      "specificity": 0.7561683599419449
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.2,
+      "sensitivity": 0.14285714285714285,
+      "specificity": 0.996629213483146
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.25,
+      "sensitivity": 0.5355191256830601,
+      "specificity": 0.9621848739495799
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.25,
+      "sensitivity": 0.21666666666666667,
+      "specificity": 0.9588159588159588
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.25,
+      "sensitivity": 0.994579945799458,
+      "specificity": 0.7735849056603774
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.25,
+      "sensitivity": 0.3125,
+      "specificity": 0.9042089985486212
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.25,
+      "sensitivity": 0.0,
+      "specificity": 0.9977528089887641
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.35,
+      "sensitivity": 0.4371584699453552,
+      "specificity": 0.9761904761904762
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.35,
+      "sensitivity": 0.14166666666666666,
+      "specificity": 0.9781209781209781
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.35,
+      "sensitivity": 0.991869918699187,
+      "specificity": 0.7735849056603774
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.35,
+      "sensitivity": 0.0625,
+      "specificity": 0.9912917271407837
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.35,
+      "sensitivity": 0.0,
+      "specificity": 1.0
+    },
+    {
+      "class": "Caries",
+      "threshold": 0.5,
+      "sensitivity": 0.3333333333333333,
+      "specificity": 0.9873949579831933
+    },
+    {
+      "class": "Periapical lesion",
+      "threshold": 0.5,
+      "sensitivity": 0.06666666666666667,
+      "specificity": 0.9961389961389961
+    },
+    {
+      "class": "Impacted tooth",
+      "threshold": 0.5,
+      "sensitivity": 0.9850948509485095,
+      "specificity": 0.7924528301886793
+    },
+    {
+      "class": "Bone Loss",
+      "threshold": 0.5,
+      "sensitivity": 0.0,
+      "specificity": 1.0
+    },
+    {
+      "class": "Retained root",
+      "threshold": 0.5,
+      "sensitivity": 0.0,
+      "specificity": 1.0
+    }
+  ],
+  "test_box_counts_at_thresholds": {
+    "Caries": {
+      "true_boxes": 549,
+      "found": 321,
+      "missed": 228,
+      "false_boxes": 1504
+    },
+    "Periapical lesion": {
+      "true_boxes": 160,
+      "found": 51,
+      "missed": 109,
+      "false_boxes": 695
+    },
+    "Impacted tooth": {
+      "true_boxes": 1806,
+      "found": 1593,
+      "missed": 213,
+      "false_boxes": 159
+    },
+    "Bone Loss": {
+      "true_boxes": 451,
+      "found": 188,
+      "missed": 263,
+      "false_boxes": 686
+    },
+    "Retained root": {
+      "true_boxes": 22,
+      "found": 13,
+      "missed": 9,
+      "false_boxes": 32
+    }
+  },
+  "test_box_metrics": {
+    "Caries": {
+      "precision": 0.3205789249709733,
+      "recall": 0.47540983606557374,
+      "mAP50": 0.3883149438043007,
+      "mAP50-95": 0.15457168376430355
+    },
+    "Periapical lesion": {
+      "precision": 0.14431648656315724,
+      "recall": 0.23125,
+      "mAP50": 0.10446260178428407,
+      "mAP50-95": 0.03472235735165127
+    },
+    "Impacted tooth": {
+      "precision": 0.7838401650705373,
+      "recall": 0.973421926910299,
+      "mAP50": 0.9281255934124065,
+      "mAP50-95": 0.593287999130798
+    },
+    "Bone Loss": {
+      "precision": 0.17061495783369937,
+      "recall": 0.49002217294900224,
+      "mAP50": 0.1982126459154721,
+      "mAP50-95": 0.0991061718514378
+    },
+    "Retained root": {
+      "precision": 0.4346961778736755,
+      "recall": 0.2727272727272727,
+      "mAP50": 0.34221611928981305,
+      "mAP50-95": 0.17092998335756995
+    },
+    "ALL": {
+      "precision": 0.37080934246240854,
+      "recall": 0.4885662417304296,
+      "mAP50": 0.39226638084125526,
+      "mAP50-95": 0.21052363909115213
+    }
+  }
+}

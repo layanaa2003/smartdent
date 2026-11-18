@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from flask import current_app
 
 from app.extensions import db
+from app.heatmap import heatmap_name
 from app.inference import analyze_file, annotated_name, model_version
 from app.models import AnalysisResult, DentistFinding, Report
 from app.recommendations import assess_xray, image_size
@@ -16,6 +17,10 @@ from app.storage import upload_path
 
 def remove_old_result(xray):
     """Delete a previous result (and its report files) before re-analysing."""
+    try:                                         # the heatmap is remade on request, with the current model
+        upload_path(heatmap_name(xray.image_path)).unlink(missing_ok=True)
+    except OSError:                              # e.g. Windows, while a browser is still downloading it
+        current_app.logger.warning("Could not remove the old heatmap of X-ray %s", xray.id)
     if xray.result is None:
         return
     for report in xray.result.reports:

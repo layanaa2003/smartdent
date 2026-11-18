@@ -12,6 +12,7 @@ from flask_login import current_user
 from app.analysis import (REVIEW_CHOICES, BadBox, add_dentist_finding, remove_dentist_finding, review_counts,
                           run_analysis, set_review)
 from app.auth import role_required
+from app.heatmap import heatmap_name, make_heatmap
 from app.inference import ModelNotFound, annotated_name
 from app.emailer import email_configured, send_email
 from app.extensions import db
@@ -214,6 +215,23 @@ def annotated_image(xray_id):
     path = upload_path(annotated_name(xray.image_path))
     if xray.result is None or not path.exists():
         abort(404)
+    return send_file(path)
+
+
+@bp.route("/xrays/<int:xray_id>/heatmap")
+@role_required("doctor")
+def heatmap_image(xray_id):
+    """Where the AI model looked (EigenCAM heatmap). Made the first time it is asked for."""
+    xray = own_xray_or_404(xray_id)
+    if xray.result is None:
+        abort(404)
+    path = upload_path(heatmap_name(xray.image_path))
+    if not path.exists():
+        try:
+            make_heatmap(upload_path(xray.image_path), current_app.config["MODEL_PATH"], path)
+        except Exception:
+            current_app.logger.exception("Heatmap failed for X-ray %s", xray.id)
+            abort(503)
     return send_file(path)
 
 

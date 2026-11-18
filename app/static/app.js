@@ -55,10 +55,13 @@ if (zoomable && viewer) {
 
   zoomable.addEventListener("click", () => {
     // Boxes on: zoom the copy with boxes drawn in. Boxes off: the plain X-ray.
+    // Heatmap on: zoom the heatmap.
     const toggle = document.getElementById("show-boxes");
-    big.src = toggle && zoomable.dataset.annotated
-      ? (toggle.checked ? zoomable.dataset.annotated : zoomable.dataset.original)
-      : zoomable.src;
+    const heat = document.getElementById("show-heatmap");
+    big.src = heat && heat.checked ? heat.dataset.src
+      : toggle && zoomable.dataset.annotated
+        ? (toggle.checked ? zoomable.dataset.annotated : zoomable.dataset.original)
+        : zoomable.src;
     reset();
     viewer.hidden = false;
   });
@@ -128,10 +131,39 @@ if (xrayImg && boxLayer) {
                 setTimeout(() => light(box.dataset.index, false), 1600); }
   }));
 
+  const heat = document.getElementById("show-heatmap");
+  // The picture under the boxes when the heatmap is off.
+  const plainSrc = () => (boxes.length || !toggle || !toggle.checked) ? xrayImg.dataset.original
+                                                                     : xrayImg.dataset.annotated;
   if (toggle) toggle.addEventListener("change", () => {
     if (boxes.length) figure.classList.toggle("boxes-off", !toggle.checked);
-    else xrayImg.src = toggle.checked ? xrayImg.dataset.annotated : xrayImg.dataset.original;
+    else if (!(heat && heat.checked)) xrayImg.src = plainSrc();
   });
+
+  // Heatmap: swap the picture under the boxes for the heatmap. It has the same size as the
+  // X-ray, so the boxes stay in place. The server makes it the first time (a few seconds).
+  const note = document.getElementById("heatmap-note");
+  if (heat && note) {
+    heat.closest("[data-heatmap-switch]").hidden = false;
+    const status = note.querySelector("[data-heatmap-status]");
+    heat.addEventListener("change", () => {
+      note.hidden = !heat.checked;
+      if (!heat.checked) { status.textContent = ""; xrayImg.src = plainSrc(); return; }
+      status.textContent = "Making the heatmap: this takes a few seconds the first time.";
+      const done = () => { xrayImg.removeEventListener("error", failed); status.textContent = ""; };
+      const failed = () => {
+        xrayImg.removeEventListener("load", done);
+        heat.checked = false;
+        status.textContent = "";
+        note.hidden = true;
+        xrayImg.src = plainSrc();
+        alert("The heatmap could not be made for this X-ray.");
+      };
+      xrayImg.addEventListener("load", done, { once: true });
+      xrayImg.addEventListener("error", failed, { once: true });
+      xrayImg.src = heat.dataset.src;
+    });
+  }
 }
 
 // ---------- 5. Drag-and-drop upload with a preview ----------
